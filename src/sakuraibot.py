@@ -40,11 +40,11 @@ else:
 logging.info("--- Starting sakuraibot ---")    
     
 passf = open(PASSWORD_FILENAME, "r")
-password = passf.read()
+password = passf.read().strip()
 passf.close()
 
 cookief = open(COOKIE_FILENAME, "r")
-cookie = cookief.read()
+cookie = cookief.read().strip()
 cookief.close()
 
 class PostDetails:
@@ -54,12 +54,12 @@ class PostDetails:
         self.picture = picture
 
 def getMiiverseLastPost():
-    """Fetches the URL path to the last Miivers post in the Director's room."""
+    """Fetches the URL path to the last Miiverse post in the Director's room."""
     req = urllib2.Request(MIIVERSE_URL + MAIN_PATH)
     req.add_header("Cookie", cookie)
     page = urllib2.urlopen(req).read()
     soup = BeautifulSoup(page)
-    
+    print page
     post_url = soup.find("div", {"class":"post"}).get("data-href")
     logging.info("Last post found: " + post_url)
     return post_url
@@ -112,13 +112,13 @@ def postToReddit(post_details):
     if post_details.picture == None:
         # Self post
         title = "New " + post_details.author + " post! (" + datetime.datetime.now().strftime("%y-%m-%d") + ") \"" + post_details.text + "\" (No picture)"
-        r.submit(subreddit, title, text=SAKURAI_BABBLE)
-        logging.info("New self-post posted!")
+        submission = r.submit(subreddit, title, text=SAKURAI_BABBLE)
+        logging.info("New self-post posted! " + submission.short_link)
     else:
         # Link post
         title = "New " + post_details.author + " picture! \"" + post_details.text + "\""
-        r.submit(subreddit, title, url=post_details.picture)
-        logging.info("New submission posted!")
+        submission = r.submit(subreddit, title, url=post_details.picture)
+        logging.info("New submission posted!" + submission.short_link)
 
 
 def setLastPost(post_url):
@@ -140,7 +140,9 @@ try:
                 postToReddit(post_details)
                 if not debug:
                     setLastPost(post_url)
-                    
+            
+            if debug:
+                quit()
         except urllib2.HTTPError as e:
             logging.error("ERROR: HTTPError code " + e.code + " encountered while making request - sleeping another iteration and retrying.")
         except urllib2.URLError as e:
