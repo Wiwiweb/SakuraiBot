@@ -1,8 +1,12 @@
 #!/usr/bin/python
 '''
 Created on 2013-06-14
+Author: Wiwiweb
 
-@author: williamg
+Reddit bot to fetch Miiverse posts by Smash Bros creator Sakurai.
+
+Some parts inspired by reddit-xkcdbot's source code.
+https://github.com/trisweb/reddit-xkcdbot
 '''
 
 import praw
@@ -125,6 +129,7 @@ def setLastPost(post_url):
     """Replaces the last post remembered with the argument."""
     postf = open(LAST_POST_FILENAME, "w")
     postf.write(post_url)
+    postf.close()
 
     
 
