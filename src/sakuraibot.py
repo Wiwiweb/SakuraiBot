@@ -25,7 +25,7 @@ SAKURAI_BABBLE = "Sakurai: (laughs)"
 PASSWORD_FILENAME = "../res/private/reddit-password.txt"
 COOKIE_FILENAME = "../res/private/miiverse-cookie.txt"
 LAST_POST_FILENAME = "../res/last-post.txt"
-LOG_FILE = datetime.datetime.now().strftime("sakuraibot_%y-%m-%d.log")
+LOG_FILE = datetime.datetime.now().strftime("../logs/sakuraibot_%y-%m-%d.log")
 
 USERNAME = "SakuraiBot"
 MIIVERSE_URL = "https://miiverse.nintendo.net"
