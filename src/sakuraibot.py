@@ -19,7 +19,8 @@ from time import sleep
 import datetime
 import json
 
-VERSION = "1.1"
+VERSION = "1.2"
+USER_AGENT = "SakuraiBot v" + VERSION + " by /u/Wiwiweb for /r/smashbros"
 FREQUENCY = 300
 SAKURAI_BABBLE = "Sakurai: (laughs)"
 
@@ -62,13 +63,22 @@ tokenf = open(IMGUR_TOKEN_FILENAME, "r")
 token = tokenf.read().strip()
 tokenf.close()
 
+
 class PostDetails:
-    def __init__(self, author, text, picture, video):
+    def __init__(self, author, text, picture, video, smashbros_picture):
         self.author = author
         self.text = text
         self.picture = picture
         self.video = video
-
+        self.smashbros_picture = smashbros_picture
+    def isTextPost(self):
+        return self.picture is None and self.video is None
+    def isPicturePost(self):
+        return self.picture is not None
+    def isVideoPost(self):
+        return self.video is not None
+    
+    
 def getMiiverseLastPost():
     """Fetches the URL path to the last Miiverse post in the Director's room."""
     req = urllib2.Request(MIIVERSE_URL + MAIN_PATH)
@@ -105,7 +115,7 @@ def getInfoFromPost(post_url):
     req.add_header("Cookie", cookie)
     page = urllib2.urlopen(req).read()
     soup = BeautifulSoup(page)
-    
+    print page
     author = soup.find("p", {"class":"user-name"}).find("a").get_text()
     logging.info("Post author: " + author)
     
@@ -129,35 +139,11 @@ def getInfoFromPost(post_url):
         video_url = None
         logging.info("Post picture: " + picture_url)
     
-    return PostDetails(author, text, picture_url, video_url)
+    return PostDetails(author, text, picture_url, video_url, None)
     
     
-def postToReddit(post_details):
-    """Posts the new Miiverse post to /r/smashbros"""
-    user_agent = "SakuraiBot v" + VERSION + " by /u/Wiwiweb for /r/smashbros"
-    r = praw.Reddit(user_agent=user_agent)
-    r.login(USERNAME, password)
-    logging.info("Logged into Reddit.")
-    
-    date = datetime.datetime.now().strftime("%y-%m-%d")
-    if post_details.picture == None:
-        # Self post
-        title = "New " + post_details.author + " post! (" + date + ") \"" + post_details.text + "\" (No picture)"
-        submission = r.submit(subreddit, title, text=SAKURAI_BABBLE)
-        logging.info("New self-post posted! " + submission.short_link)
-    else:
-        # Link post
-        if post_details.video == None:
-            title = "New " + post_details.author + " picture! (" + date + ") \"" + post_details.text + "\""
-            submission = r.submit(subreddit, title, url=post_details.picture)
-        else:
-            title = "New " + post_details.author + " video! (" + date + ") \"" + post_details.text + "\""
-            submission = r.submit(subreddit, title, url=post_details.video)
-        logging.info("New submission posted!" + submission.short_link)
-
-
 def uploadToImgur(post_details):
-    """Uploads the post to imgur and returns the link."""
+    """Uploads the picture to imgur and returns the link."""
     parameters = {"image":post_details.picture,
                   "title":post_details.text,
                   "type" :"URL"}
@@ -170,6 +156,80 @@ def uploadToImgur(post_details):
     picture_url = json_resp["data"]["link"]
     logging.info("Uploaded to imgur! " + picture_url)
     return picture_url
+
+    
+def postToReddit(post_details):
+    """Posts the new Miiverse post to /r/smashbros"""
+    r = praw.Reddit(user_agent=USER_AGENT)
+    r.login(USERNAME, password)
+    logging.info("Logged into Reddit.")
+    
+    date = datetime.datetime.now().strftime("%y-%m-%d")
+    text_too_long = False
+    text_post = False
+    if post_details.picture == None:
+        # Self post
+        text_post = True
+        title = "New " + post_details.author + " post! (" + date + ") \"" + post_details.text + "\" (No picture)"
+        if len(title) > 300:
+            title = "New " + post_details.author + " post! (" + date + ") (Text too long! See comments) (No picture)"
+            text_too_long = True
+    else:
+        # Link post
+        if post_details.video == None:
+            title = "New " + post_details.author + " picture! (" + date + ") \"" + post_details.text + "\""
+            if len(title) > 300:
+                title = "New " + post_details.author + " picture! (" + date + ") (Text too long! See post)"
+                text_too_long = True
+            submission = r.submit(subreddit, title, url=post_details.smashbros_picture)
+        else:
+            title = "New " + post_details.author + " video! (" + date + ") \"" + post_details.text + "\""
+            if len(title) > 300:
+                title = "New " + post_details.author + " video! (" + date + ") (Text too long! See comments)"
+                text_too_long = True
+            submission = r.submit(subreddit, title, url=post_details.video)
+        logging.info("New submission posted!" + submission.short_link)
+        
+    # Additional comment
+    comment = ""
+    if text_too_long:
+        comment += "Full text:  \n>" + post_details.text.replace("\r\n", "  \n") # Reddit formatting
+        logging.info("Text too long. Added to comment.")
+    if post_details.smashbros_picture is not None:
+        if comment is not "":
+            comment += "\\n\\n"
+        comment += "[Original Miiverse picture](" + post_details.picture + ")"
+        
+    if text_post:
+        if comment is not "":
+            submission = r.submit(subreddit, title, text=comment)
+            logging.info("New self-post posted with extra text! " + submission.short_link)
+        else:
+            submission = r.submit(subreddit, title, text=SAKURAI_BABBLE)
+            logging.info("New self-post posted with no extra text! " + submission.short_link)
+    else:
+        if comment is not "":
+            submission.add_comment(comment)
+            logging.info("Comment posted.")
+        else:
+            logging.info("No comment posted.")
+
+
+def commentOnReddit(post_details, submission, text_too_long):
+    comment = ""
+    if text_too_long:
+        comment += "Full text: \"" + post_details.text + "\""
+        logging.info("Text too long. Added to comment.")
+    if post_details.smashbros_picture is not None:
+        if comment is not "":
+            comment += "\\n\\n"
+        comment += "[Original Miiverse picture](" + post_details.picture + ")"
+        
+    if comment is not "":
+        submission.add_comment(comment)
+        logging.info("Comment posted.")
+    else:
+        logging.info("No comment posted.")
     
 
 def setLastPost(post_url):
@@ -187,17 +247,17 @@ def setLastPost(post_url):
 try:
     while True:
         try:
-            
+             
             logging.info("Starting the cycle again.")
             post_url = getMiiverseLastPost()
             if isNewPost(post_url):
                 post_details = getInfoFromPost(post_url)
-                if post_details.picture is not None:
+                if post_details.isPicturePost():
                     post_details.picture = uploadToImgur(SMASH_DAILY_PIC)
                 postToReddit(post_details)
                 if not debug:
                     setLastPost(post_url)
-                
+                 
             if debug:
                 quit()
         except urllib2.HTTPError as e:
@@ -206,7 +266,7 @@ try:
             logging.info("URLError: " + e.reason + ". Sleeping another iteration and retrying.")
         except Exception as e:
             logging.info("Unknown error: " + str(e) + ". Sleeping another iteration and retrying.")
-               
+                
         sleep(FREQUENCY)
         
 except (KeyboardInterrupt):
