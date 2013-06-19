@@ -25,6 +25,7 @@ SAKURAI_BABBLE = "Sakurai: (laughs)"
 PASSWORD_FILENAME = "../res/private/reddit-password.txt"
 COOKIE_FILENAME = "../res/private/miiverse-cookie.txt"
 LAST_POST_FILENAME = "../res/last-post.txt"
+LOG_FILE = datetime.datetime.now().strftime("sakuraibot_%y-%m-%d.log")
 
 USERNAME = "SakuraiBot"
 MIIVERSE_URL = "https://miiverse.nintendo.net"
@@ -40,7 +41,7 @@ else:
 if debug:
     logging.basicConfig(stream=sys.stdout, level=logging.DEBUG, format='%(asctime)s: %(message)s')
 else:
-    logging.basicConfig(filename='sakuraibot.log', level=logging.INFO, format='%(asctime)s: %(message)s')
+    logging.basicConfig(filename=LOG_FILE, level=logging.INFO, format='%(asctime)s: %(message)s')
 
 logging.info("--- Starting sakuraibot ---")    
     
