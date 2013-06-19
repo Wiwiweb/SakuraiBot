@@ -198,7 +198,7 @@ def postToReddit(post_details):
             if len(title) > 300:
                 title = "New " + post_details.author + " picture! (" + date + ") (Text too long! See post)"
                 text_too_long = True
-            submission = r.submit(subreddit, title, url=post_details.smashbros_picture)
+            submission = r.submit(subreddit, title, url=post_details.picture)
         else:
             title = "New " + post_details.author + " video! (" + date + ") \"" + post_details.text + "\""
             if len(title) > 300:
@@ -215,7 +215,7 @@ def postToReddit(post_details):
     if post_details.smashbros_picture is not None:
         if comment is not "":
             comment += "\\n\\n"
-        comment += "[Original Miiverse picture](" + post_details.picture + ")"
+        comment += "[smashbros.com image (Slightly higher quality)](" + post_details.smashbros_picture + ")"
         
     if text_post:
         if comment is not "":
