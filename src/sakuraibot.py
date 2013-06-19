@@ -26,8 +26,10 @@ SAKURAI_BABBLE = "Sakurai: (laughs)"
 
 PASSWORD_FILENAME = "../res/private/reddit-password.txt"
 COOKIE_FILENAME = "../res/private/miiverse-cookie.txt"
-IMGUR_TOKEN_FILENAME = "../res/private/imgur-token.txt"
+IMGUR_REFRESH_TOKEN_FILENAME = "../res/private/imgur-refresh-token.txt"
+IMGUR_CLIENT_SECRET_FILENAME = "../res/private/imgur-client-secret.txt"
 
+IMGUR_CLIENT_ID = "45b2e3810d7d550"
 LAST_POST_FILENAME = "../res/last-post.txt"
 LOG_FILE = datetime.datetime.now().strftime("../logs/sakuraibot_%y-%m-%d.log")
 
@@ -35,6 +37,7 @@ USERNAME = "SakuraiBot"
 MIIVERSE_URL = "https://miiverse.nintendo.net"
 MAIN_PATH = "/titles/14866558073037299863/14866558073037300685"
 IMGUR_UPLOAD_URL = "https://api.imgur.com/3/image"
+IMGUR_REFRESH_URL = "https://api.imgur.com/oauth2/token"
 SMASH_DAILY_PIC = "http://www.smashbros.com/update/images/daily.jpg"
 
 if len(sys.argv) > 1 and sys.argv[1] == "--debug":
@@ -49,7 +52,7 @@ if debug:
 else:
     logging.basicConfig(filename=LOG_FILE, level=logging.INFO, format='%(asctime)s: %(message)s')
 
-logging.info("--- Starting sakuraibot ---")    
+logging.info("--- Starting sakuraibot ---")
     
 passf = open(PASSWORD_FILENAME, "r")
 password = passf.read().strip()
@@ -59,9 +62,13 @@ cookief = open(COOKIE_FILENAME, "r")
 cookie = cookief.read().strip()
 cookief.close()
 
-tokenf = open(IMGUR_TOKEN_FILENAME, "r")
-token = tokenf.read().strip()
+tokenf = open(IMGUR_REFRESH_TOKEN_FILENAME, "r")
+imgur_token = tokenf.read().strip()
 tokenf.close()
+
+secretf = open(IMGUR_CLIENT_SECRET_FILENAME, "r")
+imgur_secret = secretf.read().strip()
+secretf.close()
 
 
 class PostDetails:
@@ -115,7 +122,6 @@ def getInfoFromPost(post_url):
     req.add_header("Cookie", cookie)
     page = urllib2.urlopen(req).read()
     soup = BeautifulSoup(page)
-    print page
     author = soup.find("p", {"class":"user-name"}).find("a").get_text()
     logging.info("Post author: " + author)
     
@@ -144,14 +150,25 @@ def getInfoFromPost(post_url):
     
 def uploadToImgur(post_details):
     """Uploads the picture to imgur and returns the link."""
-    parameters = {"image":post_details.picture,
+    
+    # Request new access token
+    parameters = {"refresh_token":imgur_token,
+                  "client_id"    :IMGUR_CLIENT_ID,
+                  "client_secret":imgur_secret,
+                  "grant_type"   :"refresh_token"}
+    data = urlencode(parameters)
+    req = urllib2.Request(IMGUR_REFRESH_URL, data)
+    json_resp = json.loads(urllib2.urlopen(req).read())
+    imgur_access_token = json_resp["access_token"]
+
+    # Upload picture
+    parameters = {"image":SMASH_DAILY_PIC,
                   "title":post_details.text,
                   "type" :"URL"}
     data = urlencode(parameters)
     req = urllib2.Request(IMGUR_UPLOAD_URL, data)
-    req.add_header("Authorization", "Bearer " + token)
-    json_resp = urllib2.urlopen(req).read()
-    json_resp = json.loads(json_resp)
+    req.add_header("Authorization", "Bearer " + imgur_access_token)
+    json_resp = json.loads(urllib2.urlopen(req).read())
     
     picture_url = json_resp["data"]["link"]
     logging.info("Uploaded to imgur! " + picture_url)
@@ -188,7 +205,7 @@ def postToReddit(post_details):
                 title = "New " + post_details.author + " video! (" + date + ") (Text too long! See comments)"
                 text_too_long = True
             submission = r.submit(subreddit, title, url=post_details.video)
-        logging.info("New submission posted!" + submission.short_link)
+        logging.info("New submission posted! " + submission.short_link)
         
     # Additional comment
     comment = ""
@@ -247,17 +264,17 @@ def setLastPost(post_url):
 try:
     while True:
         try:
-             
+              
             logging.info("Starting the cycle again.")
             post_url = getMiiverseLastPost()
             if isNewPost(post_url):
                 post_details = getInfoFromPost(post_url)
                 if post_details.isPicturePost():
-                    post_details.picture = uploadToImgur(SMASH_DAILY_PIC)
+                    post_details.smashbros_picture = uploadToImgur(post_details)
                 postToReddit(post_details)
                 if not debug:
                     setLastPost(post_url)
-                 
+                   
             if debug:
                 quit()
         except urllib2.HTTPError as e:
@@ -266,7 +283,7 @@ try:
             logging.info("URLError: " + e.reason + ". Sleeping another iteration and retrying.")
         except Exception as e:
             logging.info("Unknown error: " + str(e) + ". Sleeping another iteration and retrying.")
-                
+                  
         sleep(FREQUENCY)
         
 except (KeyboardInterrupt):
