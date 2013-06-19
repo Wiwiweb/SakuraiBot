@@ -13,10 +13,11 @@ import praw
 import logging
 import sys
 import urllib2
+from urllib import urlencode
 from bs4 import BeautifulSoup
 from time import sleep
 import datetime
-import smtplib
+import json
 
 VERSION = "1.1"
 FREQUENCY = 300
@@ -24,12 +25,16 @@ SAKURAI_BABBLE = "Sakurai: (laughs)"
 
 PASSWORD_FILENAME = "../res/private/reddit-password.txt"
 COOKIE_FILENAME = "../res/private/miiverse-cookie.txt"
+IMGUR_TOKEN_FILENAME = "../res/private/imgur-token.txt"
+
 LAST_POST_FILENAME = "../res/last-post.txt"
 LOG_FILE = datetime.datetime.now().strftime("../logs/sakuraibot_%y-%m-%d.log")
 
 USERNAME = "SakuraiBot"
 MIIVERSE_URL = "https://miiverse.nintendo.net"
 MAIN_PATH = "/titles/14866558073037299863/14866558073037300685"
+IMGUR_UPLOAD_URL = "https://api.imgur.com/3/image"
+SMASH_DAILY_PIC = "http://www.smashbros.com/update/images/daily.jpg"
 
 if len(sys.argv) > 1 and sys.argv[1] == "--debug":
     debug = True
@@ -52,6 +57,10 @@ passf.close()
 cookief = open(COOKIE_FILENAME, "r")
 cookie = cookief.read().strip()
 cookief.close()
+
+tokenf = open(IMGUR_TOKEN_FILENAME, "r")
+token = tokenf.read().strip()
+tokenf.close()
 
 class PostDetails:
     def __init__(self, author, text, picture, video):
@@ -122,6 +131,7 @@ def getInfoFromPost(post_url):
     
     return PostDetails(author, text, picture_url, video_url)
     
+    
 def postToReddit(post_details):
     """Posts the new Miiverse post to /r/smashbros"""
     user_agent = "SakuraiBot v" + VERSION + " by /u/Wiwiweb for /r/smashbros"
@@ -146,6 +156,22 @@ def postToReddit(post_details):
         logging.info("New submission posted!" + submission.short_link)
 
 
+def uploadToImgur(post_details):
+    """Uploads the post to imgur and returns the link."""
+    parameters = {"image":post_details.picture,
+                  "title":post_details.text,
+                  "type" :"URL"}
+    data = urlencode(parameters)
+    req = urllib2.Request(IMGUR_UPLOAD_URL, data)
+    req.add_header("Authorization", "Bearer " + token)
+    json_resp = urllib2.urlopen(req).read()
+    json_resp = json.loads(json_resp)
+    
+    picture_url = json_resp["data"]["link"]
+    logging.info("Uploaded to imgur! " + picture_url)
+    return picture_url
+    
+
 def setLastPost(post_url):
     """Adds the last post remembered with the argument."""
     postf = open(LAST_POST_FILENAME, "r+")
@@ -161,15 +187,17 @@ def setLastPost(post_url):
 try:
     while True:
         try:
-               
+            
             logging.info("Starting the cycle again.")
             post_url = getMiiverseLastPost()
             if isNewPost(post_url):
                 post_details = getInfoFromPost(post_url)
+                if post_details.picture is not None:
+                    post_details.picture = uploadToImgur(SMASH_DAILY_PIC)
                 postToReddit(post_details)
                 if not debug:
                     setLastPost(post_url)
-               
+                
             if debug:
                 quit()
         except urllib2.HTTPError as e:
@@ -178,7 +206,7 @@ try:
             logging.info("URLError: " + e.reason + ". Sleeping another iteration and retrying.")
         except Exception as e:
             logging.info("Unknown error: " + str(e) + ". Sleeping another iteration and retrying.")
-              
+               
         sleep(FREQUENCY)
         
 except (KeyboardInterrupt):
