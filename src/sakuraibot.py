@@ -40,12 +40,17 @@ IMGUR_UPLOAD_URL = "https://api.imgur.com/3/image"
 IMGUR_REFRESH_URL = "https://api.imgur.com/oauth2/token"
 SMASH_DAILY_PIC = "http://www.smashbros.com/update/images/daily.jpg"
 
-if len(sys.argv) > 1 and sys.argv[1] == "--debug":
+if len(sys.argv) > 1 and "--debug" in sys.argv:
     debug = True
     subreddit = "reddit_api_test"
 else:
     debug = False
     subreddit = "smashbros"
+    
+if len(sys.argv) > 1 and "--miiverse" in sys.argv:
+    miiverse_main = True
+else:
+    miiverse_main = False
 
 if debug:
     logging.basicConfig(stream=sys.stdout, level=logging.DEBUG, format='%(asctime)s: %(message)s')
@@ -198,7 +203,10 @@ def postToReddit(post_details):
             if len(title) > 300:
                 title = "New " + post_details.author + " picture! (" + date + ") (Text too long! See post)"
                 text_too_long = True
-            submission = r.submit(subreddit, title, url=post_details.picture)
+            if miiverse_main:
+                submission = r.submit(subreddit, title, url=post_details.picture)
+            else:
+                submission = r.submit(subreddit, title, url=post_details.smashbros_picture)
         else:
             title = "New " + post_details.author + " video! (" + date + ") \"" + post_details.text + "\""
             if len(title) > 300:
@@ -215,7 +223,10 @@ def postToReddit(post_details):
     if post_details.smashbros_picture is not None:
         if comment is not "":
             comment += "\\n\\n"
-        comment += "[smashbros.com image (Slightly higher quality)](" + post_details.smashbros_picture + ")"
+        if miiverse_main:
+            comment += "[Original Miiverse picture](" + post_details.picture + ")"
+        else:
+            comment += "[Smashbros.com image (Slightly higher quality)](" + post_details.smashbros_picture + ")"
         
     if text_post:
         if comment is not "":
