@@ -11,16 +11,17 @@ https://github.com/trisweb/reddit-xkcdbot
 
 import praw
 import logging
+from logging.handlers import TimedRotatingFileHandler
 import sys
 import urllib2
 import cookielib
 from urllib import urlencode
 from bs4 import BeautifulSoup
 from time import sleep
-import datetime
-import json
+from datetime import datetime
+from json import loads
 
-VERSION = "1.2"
+VERSION = "1.3"
 USER_AGENT = "SakuraiBot v" + VERSION + " by /u/Wiwiweb for /r/smashbros"
 FREQUENCY = 300
 SAKURAI_BABBLE = "Sakurai: (laughs)"
@@ -34,46 +35,54 @@ IMGUR_CLIENT_ID = "45b2e3810d7d550"
 LAST_POST_FILENAME = "../res/last-post.txt"
 
 USERNAME = "SakuraiBot"
+MIIVERSE_USERNAME = "Wiwiweb"
 MIIVERSE_URL = "https://miiverse.nintendo.net"
-MAIN_PATH = "/titles/14866558073037299863/14866558073037300685"
+MIIVERSE_DEVELOPER_PAGE = "/titles/14866558073037299863/14866558073037300685"
 IMGUR_UPLOAD_URL = "https://api.imgur.com/3/image"
 IMGUR_REFRESH_URL = "https://api.imgur.com/oauth2/token"
 SMASH_DAILY_PIC = "http://www.smashbros.com/update/images/daily.jpg"
 NINTENDO_LOGIN_PAGE = "https://id.nintendo.net/oauth/authorize"
 
-if len(sys.argv) > 1 and "--debug" in sys.argv:
+if len(sys.argv) > 1 and '--debug' in sys.argv:
     debug = True
-    subreddit = "reddit_api_test"
+    subreddit = 'reddit_api_test'
 else:
     debug = False
-    subreddit = "smashbros"
+    subreddit = 'smashbros'
     
-if len(sys.argv) > 1 and "--miiverse" in sys.argv:
-    miiverse_main = True
-else:
-    miiverse_main = False
-
 if debug:
     logging.basicConfig(stream=sys.stdout, level=logging.DEBUG, format='%(asctime)s: %(message)s')
 else:
-    log_file = datetime.datetime.now().strftime("../logs/sakuraibot_%y-%m-%d.log")
-    logging.basicConfig(filename=log_file, level=logging.INFO, format='%(asctime)s: %(message)s')
+    # Logging
+    timed_logger = TimedRotatingFileHandler('../logs/sakuraibot.log','midnight')
+    timed_logger.setFormatter(logging.Formatter('%(asctime)s: %(message)s'))
+    timed_logger.setLevel(logging.INFO)
+    
+    root_logger = logging.getLogger()
+    root_logger.addHandler(timed_logger)
 
 logging.info("--- Starting sakuraibot ---")
-    
-f = open(REDDIT_PASSWORD_FILENAME, "r")
+
+if len(sys.argv) > 1 and '--miiverse' in sys.argv:
+    miiverse_main = True
+    logging.info("Main pic: Miiverse")
+else:
+    miiverse_main = False
+    logging.info("Main pic: smashbros.com")
+
+f = open(REDDIT_PASSWORD_FILENAME, 'r')
 reddit_password = f.read().strip()
 f.close()
 
-f = open(IMGUR_REFRESH_TOKEN_FILENAME, "r")
+f = open(IMGUR_REFRESH_TOKEN_FILENAME, 'r')
 imgur_token = f.read().strip()
 f.close()
 
-f = open(IMGUR_CLIENT_SECRET_FILENAME, "r")
+f = open(IMGUR_CLIENT_SECRET_FILENAME, 'r')
 imgur_secret = f.read().strip()
 f.close()
 
-f = open(MIIVERSE_PASSWORD_FILENAME, "r")
+f = open(MIIVERSE_PASSWORD_FILENAME, 'r')
 miiverse_password = f.read().strip()
 f.close()
 
@@ -103,13 +112,13 @@ def getNewMiiverseCookie():
     parameters = {"client_id"    :"ead88d8d450f40ada5682060a8885ec0",
                   "response_type":"code",
                   "redirect_uri" :"https://miiverse.nintendo.net/auth/callback",
-                  "username"     :"Wiwiweb",
+                  "username"     :MIIVERSE_USERNAME,
                   "password"     :miiverse_password}
     data = urlencode(parameters)
     req = urllib2.Request(NINTENDO_LOGIN_PAGE, data)
     opener.open(req)
     for cookie in cookies:
-        if cookie.name == "ms":
+        if cookie.name == 'ms':
             miiverse_cookie = cookie.value
             break
     return miiverse_cookie 
@@ -117,7 +126,7 @@ def getNewMiiverseCookie():
     
 def getMiiverseLastPost(miiverse_cookie):
     """Fetches the URL path to the last Miiverse post in the Director's room."""
-    req = urllib2.Request(MIIVERSE_URL + MAIN_PATH)
+    req = urllib2.Request(MIIVERSE_URL + MIIVERSE_DEVELOPER_PAGE)
     req.add_header("Cookie", "ms=" + miiverse_cookie)
     page = urllib2.urlopen(req).read()
     soup = BeautifulSoup(page)
@@ -127,7 +136,7 @@ def getMiiverseLastPost(miiverse_cookie):
         logging.info("Last post found: " + post_url)
         return post_url
     elif soup.find("form", {"id":"login_form"}):
-        logging.error("ERROR: Could not sign in to Miiverse.")
+        logging.error("ERROR: Could not sign in to Miiverse. Shutting down.")
         quit()
     else:
         raise("Unknown error")
@@ -135,7 +144,7 @@ def getMiiverseLastPost(miiverse_cookie):
     
 def isNewPost(post_url):
     """Compares the latest post URL to the ones we already processed, to see if it is new."""
-    postf = open(LAST_POST_FILENAME, "r")
+    postf = open(LAST_POST_FILENAME, 'r')
     
     # We have to check 50 posts, because sometimes Miiverse will mess up the order and we might think it's a new post even though it's not.
     for _ in range(49): # Only 50 posts on the first page.
@@ -155,9 +164,10 @@ def isNewPost(post_url):
 def getInfoFromPost(post_url, miiverse_cookie):
     """Fetches author, text and picture URL from the post (and possibly more later)"""
     req = urllib2.Request(MIIVERSE_URL + post_url)
-    req.add_header("Cookie", miiverse_cookie)
+    req.add_header("Cookie", "ms=" + miiverse_cookie)
     page = urllib2.urlopen(req).read()
     soup = BeautifulSoup(page)
+    
     author = soup.find("p", {"class":"user-name"}).find("a").get_text()
     logging.info("Post author: " + author)
     
@@ -194,7 +204,7 @@ def uploadToImgur(post_details):
                   "grant_type"   :"refresh_token"}
     data = urlencode(parameters)
     req = urllib2.Request(IMGUR_REFRESH_URL, data)
-    json_resp = json.loads(urllib2.urlopen(req).read())
+    json_resp = loads(urllib2.urlopen(req).read())
     imgur_access_token = json_resp["access_token"]
 
     # Upload picture
@@ -204,7 +214,7 @@ def uploadToImgur(post_details):
     data = urlencode(parameters)
     req = urllib2.Request(IMGUR_UPLOAD_URL, data)
     req.add_header("Authorization", "Bearer " + imgur_access_token)
-    json_resp = json.loads(urllib2.urlopen(req).read())
+    json_resp = loads(urllib2.urlopen(req).read())
     
     picture_url = json_resp["data"]["link"]
     logging.info("Uploaded to imgur! " + picture_url)
@@ -217,7 +227,7 @@ def postToReddit(post_details):
     r.login(USERNAME, reddit_password)
     logging.info("Logged into Reddit.")
     
-    date = datetime.datetime.now().strftime("%y-%m-%d")
+    date = datetime.now().strftime("%y-%m-%d")
     text_too_long = False
     text_post = False
     if post_details.picture == None:
@@ -255,9 +265,9 @@ def postToReddit(post_details):
         if comment is not "":
             comment += "\\n\\n"
         if miiverse_main:
-            comment += "[Original Miiverse picture](" + post_details.picture + ")"
-        else:
             comment += "[Smashbros.com image (Slightly higher quality)](" + post_details.smashbros_picture + ")"
+        else:
+            comment += "[Original Miiverse picture](" + post_details.picture + ")"
         
     if text_post:
         if comment is not "":
@@ -275,7 +285,7 @@ def postToReddit(post_details):
    
 
 def setLastPost(post_url):
-    """Adds the last post remembered with the argument."""
+    """Adds the last post to the top of the remembered posts file."""
     postf = open(LAST_POST_FILENAME, "r+")
     old = postf.read()
     postf.seek(0)
@@ -289,9 +299,6 @@ def setLastPost(post_url):
 try:
     while True:
         try:
-            log_file = datetime.datetime.now().strftime("../logs/toto.log")
-            logging.basicConfig(filename=log_file, level=logging.INFO, format='%(asctime)s: %(message)s')
-            
             logging.info("Starting the cycle again.")
             miiverse_cookie = getNewMiiverseCookie()
             post_url = getMiiverseLastPost(miiverse_cookie)
@@ -303,7 +310,7 @@ try:
                 if not debug:
                     setLastPost(post_url)
                      
-            if debug: # Don't loop
+            if debug: # Don't loop in debug
                 quit()
         except urllib2.HTTPError as e:
             logging.error("ERROR: HTTPError code " + e.code + " encountered while making request - sleeping another iteration and retrying.")
@@ -313,8 +320,6 @@ try:
             logging.info("ERROR: Unknown error: " + str(e) + ". Sleeping another iteration and retrying.")
                     
         sleep(FREQUENCY)
-        log_file = datetime.datetime.now().strftime("../logs/sakuraibot_%y-%m-%d.log")
-        logging.basicConfig(filename=log_file)
         
 except (KeyboardInterrupt):
     logging.info("Keyboard interrupt detected, shutting down Sakuraibot.")
