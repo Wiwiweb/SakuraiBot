@@ -13,6 +13,7 @@ import praw
 import logging
 import sys
 import urllib2
+import cookielib
 from urllib import urlencode
 from bs4 import BeautifulSoup
 from time import sleep
@@ -24,14 +25,13 @@ USER_AGENT = "SakuraiBot v" + VERSION + " by /u/Wiwiweb for /r/smashbros"
 FREQUENCY = 300
 SAKURAI_BABBLE = "Sakurai: (laughs)"
 
-PASSWORD_FILENAME = "../res/private/reddit-password.txt"
-COOKIE_FILENAME = "../res/private/miiverse-cookie.txt"
+REDDIT_PASSWORD_FILENAME = "../res/private/reddit-password.txt"
+MIIVERSE_PASSWORD_FILENAME = "../res/private/miiverse-password.txt"
 IMGUR_REFRESH_TOKEN_FILENAME = "../res/private/imgur-refresh-token.txt"
 IMGUR_CLIENT_SECRET_FILENAME = "../res/private/imgur-client-secret.txt"
 
 IMGUR_CLIENT_ID = "45b2e3810d7d550"
 LAST_POST_FILENAME = "../res/last-post.txt"
-LOG_FILE = datetime.datetime.now().strftime("../logs/sakuraibot_%y-%m-%d.log")
 
 USERNAME = "SakuraiBot"
 MIIVERSE_URL = "https://miiverse.nintendo.net"
@@ -39,6 +39,7 @@ MAIN_PATH = "/titles/14866558073037299863/14866558073037300685"
 IMGUR_UPLOAD_URL = "https://api.imgur.com/3/image"
 IMGUR_REFRESH_URL = "https://api.imgur.com/oauth2/token"
 SMASH_DAILY_PIC = "http://www.smashbros.com/update/images/daily.jpg"
+NINTENDO_LOGIN_PAGE = "https://id.nintendo.net/oauth/authorize"
 
 if len(sys.argv) > 1 and "--debug" in sys.argv:
     debug = True
@@ -55,25 +56,26 @@ else:
 if debug:
     logging.basicConfig(stream=sys.stdout, level=logging.DEBUG, format='%(asctime)s: %(message)s')
 else:
-    logging.basicConfig(filename=LOG_FILE, level=logging.INFO, format='%(asctime)s: %(message)s')
+    log_file = datetime.datetime.now().strftime("../logs/sakuraibot_%y-%m-%d.log")
+    logging.basicConfig(filename=log_file, level=logging.INFO, format='%(asctime)s: %(message)s')
 
 logging.info("--- Starting sakuraibot ---")
     
-passf = open(PASSWORD_FILENAME, "r")
-password = passf.read().strip()
-passf.close()
+f = open(REDDIT_PASSWORD_FILENAME, "r")
+reddit_password = f.read().strip()
+f.close()
 
-cookief = open(COOKIE_FILENAME, "r")
-cookie = cookief.read().strip()
-cookief.close()
+f = open(IMGUR_REFRESH_TOKEN_FILENAME, "r")
+imgur_token = f.read().strip()
+f.close()
 
-tokenf = open(IMGUR_REFRESH_TOKEN_FILENAME, "r")
-imgur_token = tokenf.read().strip()
-tokenf.close()
+f = open(IMGUR_CLIENT_SECRET_FILENAME, "r")
+imgur_secret = f.read().strip()
+f.close()
 
-secretf = open(IMGUR_CLIENT_SECRET_FILENAME, "r")
-imgur_secret = secretf.read().strip()
-secretf.close()
+f = open(MIIVERSE_PASSWORD_FILENAME, "r")
+miiverse_password = f.read().strip()
+f.close()
 
 
 class PostDetails:
@@ -91,16 +93,45 @@ class PostDetails:
         return self.video is not None
     
     
-def getMiiverseLastPost():
+def getNewMiiverseCookie():
+    cookies = cookielib.CookieJar()
+    urllib2.HTTPCookieProcessor(cookies)
+ 
+    cookies = cookielib.CookieJar()
+    opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(cookies))
+ 
+    parameters = {"client_id"    :"ead88d8d450f40ada5682060a8885ec0",
+                  "response_type":"code",
+                  "redirect_uri" :"https://miiverse.nintendo.net/auth/callback",
+                  "username"     :"Wiwiweb",
+                  "password"     :miiverse_password}
+    data = urlencode(parameters)
+    req = urllib2.Request(NINTENDO_LOGIN_PAGE, data)
+    opener.open(req)
+    for cookie in cookies:
+        if cookie.name == "ms":
+            miiverse_cookie = cookie.value
+            break
+    return miiverse_cookie 
+  
+    
+def getMiiverseLastPost(miiverse_cookie):
     """Fetches the URL path to the last Miiverse post in the Director's room."""
     req = urllib2.Request(MIIVERSE_URL + MAIN_PATH)
-    req.add_header("Cookie", cookie)
+    req.add_header("Cookie", "ms=" + miiverse_cookie)
     page = urllib2.urlopen(req).read()
     soup = BeautifulSoup(page)
-    post_url = soup.find("div", {"class":"post"}).get("data-href")
-    logging.info("Last post found: " + post_url)
-    return post_url
-
+    post_url_class = soup.find("div", {"class":"post"})
+    if post_url_class is not None:
+        post_url = post_url_class.get("data-href")
+        logging.info("Last post found: " + post_url)
+        return post_url
+    elif soup.find("form", {"id":"login_form"}):
+        logging.error("ERROR: Could not sign in to Miiverse.")
+        quit()
+    else:
+        raise("Unknown error")
+    
     
 def isNewPost(post_url):
     """Compares the latest post URL to the ones we already processed, to see if it is new."""
@@ -121,10 +152,10 @@ def isNewPost(post_url):
     return True
 
 
-def getInfoFromPost(post_url):
+def getInfoFromPost(post_url, miiverse_cookie):
     """Fetches author, text and picture URL from the post (and possibly more later)"""
     req = urllib2.Request(MIIVERSE_URL + post_url)
-    req.add_header("Cookie", cookie)
+    req.add_header("Cookie", miiverse_cookie)
     page = urllib2.urlopen(req).read()
     soup = BeautifulSoup(page)
     author = soup.find("p", {"class":"user-name"}).find("a").get_text()
@@ -183,7 +214,7 @@ def uploadToImgur(post_details):
 def postToReddit(post_details):
     """Posts the new Miiverse post to /r/smashbros"""
     r = praw.Reddit(user_agent=USER_AGENT)
-    r.login(USERNAME, password)
+    r.login(USERNAME, reddit_password)
     logging.info("Logged into Reddit.")
     
     date = datetime.datetime.now().strftime("%y-%m-%d")
@@ -241,24 +272,7 @@ def postToReddit(post_details):
             logging.info("Comment posted.")
         else:
             logging.info("No comment posted.")
-
-
-def commentOnReddit(post_details, submission, text_too_long):
-    comment = ""
-    if text_too_long:
-        comment += "Full text: \"" + post_details.text + "\""
-        logging.info("Text too long. Added to comment.")
-    if post_details.smashbros_picture is not None:
-        if comment is not "":
-            comment += "\\n\\n"
-        comment += "[Original Miiverse picture](" + post_details.picture + ")"
-        
-    if comment is not "":
-        submission.add_comment(comment)
-        logging.info("Comment posted.")
-    else:
-        logging.info("No comment posted.")
-    
+   
 
 def setLastPost(post_url):
     """Adds the last post remembered with the argument."""
@@ -275,27 +289,32 @@ def setLastPost(post_url):
 try:
     while True:
         try:
-              
+            log_file = datetime.datetime.now().strftime("../logs/toto.log")
+            logging.basicConfig(filename=log_file, level=logging.INFO, format='%(asctime)s: %(message)s')
+            
             logging.info("Starting the cycle again.")
-            post_url = getMiiverseLastPost()
+            miiverse_cookie = getNewMiiverseCookie()
+            post_url = getMiiverseLastPost(miiverse_cookie)
             if isNewPost(post_url):
-                post_details = getInfoFromPost(post_url)
+                post_details = getInfoFromPost(post_url, miiverse_cookie)
                 if post_details.isPicturePost():
                     post_details.smashbros_picture = uploadToImgur(post_details)
                 postToReddit(post_details)
                 if not debug:
                     setLastPost(post_url)
-                   
-            if debug:
+                     
+            if debug: # Don't loop
                 quit()
         except urllib2.HTTPError as e:
             logging.error("ERROR: HTTPError code " + e.code + " encountered while making request - sleeping another iteration and retrying.")
         except urllib2.URLError as e:
-            logging.info("URLError: " + e.reason + ". Sleeping another iteration and retrying.")
+            logging.info("ERROR: URLError: " + e.reason + ". Sleeping another iteration and retrying.")
         except Exception as e:
-            logging.info("Unknown error: " + str(e) + ". Sleeping another iteration and retrying.")
-                  
+            logging.info("ERROR: Unknown error: " + str(e) + ". Sleeping another iteration and retrying.")
+                    
         sleep(FREQUENCY)
+        log_file = datetime.datetime.now().strftime("../logs/sakuraibot_%y-%m-%d.log")
+        logging.basicConfig(filename=log_file)
         
 except (KeyboardInterrupt):
     logging.info("Keyboard interrupt detected, shutting down Sakuraibot.")
