@@ -19,3 +19,11 @@ echo "Starting"
 cd src
 nohup python sakuraibot.py >../nohup.out 2>&1 &
 disown
+
+sleep 1
+export SAKURAIPID=`ps aux | grep 'sakuraibot.py' | grep -v grep | awk '{print($2)}'`
+if [ -n "$SAKURAIPID" ]; then
+  echo "Running correctly."
+else
+  echo "ERROR: Script stopped."
+fi
