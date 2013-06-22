@@ -21,7 +21,7 @@ from time import sleep
 from datetime import datetime
 from json import loads
 
-VERSION = "1.3"
+VERSION = "1.4"
 USER_AGENT = "SakuraiBot v" + VERSION + " by /u/Wiwiweb for /r/smashbros"
 FREQUENCY = 300
 SAKURAI_BABBLE = "Sakurai: (laughs)"
@@ -59,6 +59,7 @@ else:
     timed_logger.setLevel(logging.INFO)
     
     root_logger = logging.getLogger()
+    root_logger.setLevel(logging.INFO)
     root_logger.addHandler(timed_logger)
 
 logging.info("--- Starting sakuraibot ---")
