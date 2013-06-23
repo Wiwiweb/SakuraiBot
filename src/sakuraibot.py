@@ -103,6 +103,7 @@ class PostDetails:
         return self.video is not None
     
     
+    
 def getNewMiiverseCookie():
     cookies = cookielib.CookieJar()
     urllib2.HTTPCookieProcessor(cookies)
@@ -124,6 +125,7 @@ def getNewMiiverseCookie():
             break
     return miiverse_cookie 
   
+        
     
 def getMiiverseLastPost(miiverse_cookie):
     """Fetches the URL path to the last Miiverse post in the Director's room."""
@@ -141,6 +143,7 @@ def getMiiverseLastPost(miiverse_cookie):
         quit()
     else:
         raise("Unknown error")
+        
     
     
 def isNewPost(post_url):
@@ -160,6 +163,7 @@ def isNewPost(post_url):
     postf.close()
     logging.info("Post is new!")
     return True
+
 
 
 def getInfoFromPost(post_url, miiverse_cookie):
@@ -194,6 +198,7 @@ def getInfoFromPost(post_url, miiverse_cookie):
     
     return PostDetails(author, text, picture_url, video_url, None)
     
+       
     
 def uploadToImgur(post_details):
     """Uploads the picture to imgur and returns the link."""
@@ -220,7 +225,8 @@ def uploadToImgur(post_details):
     picture_url = json_resp["data"]["link"]
     logging.info("Uploaded to imgur! " + picture_url)
     return picture_url
-
+   
+    
     
 def postToReddit(post_details):
     """Posts the new Miiverse post to /r/smashbros"""
@@ -257,6 +263,13 @@ def postToReddit(post_details):
             submission = r.submit(subreddit, title, url=post_details.video)
         logging.info("New submission posted! " + submission.short_link)
         
+    # Adding flair
+    # Yes, PRAW, I am totally a mod, trust me
+    subreddit_object = r.get_subreddit(subreddit)
+    r.user.get_cached_moderated_reddits()
+    r.user._mod_subs[str(subreddit_object).lower()] = subreddit_object
+    submission.set_flair(flair_text='SSB4', flair_css_class='ssb4')
+        
     # Additional comment
     comment = ""
     if text_too_long:
@@ -269,6 +282,8 @@ def postToReddit(post_details):
             comment += "[Smashbros.com image (Slightly higher quality)](" + post_details.smashbros_picture + ")"
         else:
             comment += "[Original Miiverse picture](" + post_details.picture + ")"
+    comment += "Was this submission correctly tagged as 'SSB4'?\n\n"
+    comment += "^Please ^say ^yes, ^or ^my ^creator ^will ^tear ^me ^apart ^to ^rebuild ^me ^anew. ^It ^hurts."
         
     if text_post:
         if comment is not "":
@@ -283,7 +298,8 @@ def postToReddit(post_details):
             logging.info("Comment posted.")
         else:
             logging.info("No comment posted.")
-   
+            
+                        
 
 def setLastPost(post_url):
     """Adds the last post to the top of the remembered posts file."""
