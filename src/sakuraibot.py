@@ -32,6 +32,7 @@ IMGUR_REFRESH_TOKEN_FILENAME = "../res/private/imgur-refresh-token.txt"
 IMGUR_CLIENT_SECRET_FILENAME = "../res/private/imgur-client-secret.txt"
 
 IMGUR_CLIENT_ID = "45b2e3810d7d550"
+ID_FLAIR_SSB4 = "d31a17da-d4ad-11e2-a21c-12313d2c1c24"
 LAST_POST_FILENAME = "../res/last-post.txt"
 
 USERNAME = "SakuraiBot"
@@ -264,11 +265,13 @@ def postToReddit(post_details):
         logging.info("New submission posted! " + submission.short_link)
         
     # Adding flair
-    # Yes, PRAW, I am totally a mod, trust me
-    subreddit_object = r.get_subreddit(subreddit)
-    r.user.get_cached_moderated_reddits()
-    r.user._mod_subs[str(subreddit_object).lower()] = subreddit_object
-    submission.set_flair(flair_text='SSB4', flair_css_class='ssb4')
+    # Temporary hack while PRAW gets updated
+    data = {'flair_template_id': ID_FLAIR_SSB4,
+            'link': submission.fullname,
+            'name': submission.fullname}
+    r.config.API_PATHS['select_flair'] = 'api/selectflair/'
+    r.request_json(r.config['select_flair'], data=data)
+    logging.info("Tagged as SSB4.")
         
     # Additional comment
     comment = ""
