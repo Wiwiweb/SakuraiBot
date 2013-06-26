@@ -285,8 +285,6 @@ def postToReddit(post_details):
             comment += "[Smashbros.com image (Slightly higher quality)](" + post_details.smashbros_picture + ")"
         else:
             comment += "[Original Miiverse picture](" + post_details.picture + ")"
-    comment += "Was this submission correctly tagged as 'SSB4'?\n\n"
-    comment += "^Please ^say ^yes, ^or ^my ^creator ^will ^tear ^me ^apart ^to ^rebuild ^me ^anew. ^It ^hurts."
         
     if text_post:
         if comment is not "":
