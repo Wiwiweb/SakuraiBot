@@ -20,11 +20,11 @@ from bs4 import BeautifulSoup
 from time import sleep
 from datetime import datetime
 from json import loads
+from random import randint
 
 VERSION = "1.4"
 USER_AGENT = "SakuraiBot v" + VERSION + " by /u/Wiwiweb for /r/smashbros"
 FREQUENCY = 300
-SAKURAI_BABBLE = "Sakurai: (laughs)"
 
 REDDIT_PASSWORD_FILENAME = "../res/private/reddit-password.txt"
 MIIVERSE_PASSWORD_FILENAME = "../res/private/miiverse-password.txt"
@@ -34,6 +34,7 @@ IMGUR_CLIENT_SECRET_FILENAME = "../res/private/imgur-client-secret.txt"
 IMGUR_CLIENT_ID = "45b2e3810d7d550"
 ID_FLAIR_SSB4 = "d31a17da-d4ad-11e2-a21c-12313d2c1c24"
 LAST_POST_FILENAME = "../res/last-post.txt"
+SAKURAI_BABBLES_FILENAME = "../res/sakurai-babbles.txt"
 
 USERNAME = "SakuraiBot"
 MIIVERSE_USERNAME = "Wiwiweb"
@@ -55,7 +56,7 @@ if debug:
     logging.basicConfig(stream=sys.stdout, level=logging.DEBUG, format='%(asctime)s: %(message)s')
 else:
     # Logging
-    timed_logger = TimedRotatingFileHandler('../logs/sakuraibot.log','midnight')
+    timed_logger = TimedRotatingFileHandler('../logs/sakuraibot.log', 'midnight')
     timed_logger.setFormatter(logging.Formatter('%(asctime)s: %(message)s'))
     timed_logger.setLevel(logging.INFO)
     
@@ -88,6 +89,12 @@ f = open(MIIVERSE_PASSWORD_FILENAME, 'r')
 miiverse_password = f.read().strip()
 f.close()
 
+
+f = open(SAKURAI_BABBLES_FILENAME, 'r')
+sakurai_babbles = []
+for line in f:
+    sakurai_babbles.append(line.strip())
+f.close()
 
 class PostDetails:
     def __init__(self, author, text, picture, video, smashbros_picture):
@@ -152,13 +159,13 @@ def isNewPost(post_url):
     postf = open(LAST_POST_FILENAME, 'r')
     
     # We have to check 50 posts, because sometimes Miiverse will mess up the order and we might think it's a new post even though it's not.
-    for _ in range(49): # Only 50 posts on the first page.
+    for _ in range(49):  # Only 50 posts on the first page.
         seen_post = postf.readline().strip()
         if seen_post == post_url:
             postf.close()
             logging.info("Post was already posted")
             return False
-        elif not seen_post: # No more lines.
+        elif not seen_post:  # No more lines.
             break
 
     postf.close()
@@ -226,8 +233,13 @@ def uploadToImgur(post_details):
     picture_url = json_resp["data"]["link"]
     logging.info("Uploaded to imgur! " + picture_url)
     return picture_url
-   
-    
+
+
+
+def getRandomBabble():
+    """Get a random funny Sakurai-esque quote"""  
+    rint = randint(0, len(sakurai_babbles)-1)
+    return sakurai_babbles[rint]
     
 def postToReddit(post_details):
     """Posts the new Miiverse post to /r/smashbros"""
@@ -276,7 +288,7 @@ def postToReddit(post_details):
     # Additional comment
     comment = ""
     if text_too_long:
-        comment += "Full text:  \n>" + post_details.text.replace("\r\n", "  \n") # Reddit formatting
+        comment += "Full text:  \n>" + post_details.text.replace("\r\n", "  \n")  # Reddit formatting
         logging.info("Text too long. Added to comment.")
     if post_details.smashbros_picture is not None:
         if comment is not "":
@@ -291,7 +303,8 @@ def postToReddit(post_details):
             submission = r.submit(subreddit, title, text=comment)
             logging.info("New self-post posted with extra text! " + submission.short_link)
         else:
-            submission = r.submit(subreddit, title, text=SAKURAI_BABBLE)
+            babble = getRandomBabble()
+            submission = r.submit(subreddit, title, text=babble)
             logging.info("New self-post posted with no extra text! " + submission.short_link)
     else:
         if comment is not "":
@@ -299,8 +312,8 @@ def postToReddit(post_details):
             logging.info("Comment posted.")
         else:
             logging.info("No comment posted.")
-            
-                        
+
+
 
 def setLastPost(post_url):
     """Adds the last post to the top of the remembered posts file."""
@@ -311,7 +324,10 @@ def setLastPost(post_url):
     postf.close()
     logging.info("New post remembered.")
 
-    
+
+
+
+
 
 # Main loop
 try:
@@ -328,7 +344,7 @@ try:
                 if not debug:
                     setLastPost(post_url)
                      
-            if debug: # Don't loop in debug
+            if debug:  # Don't loop in debug
                 quit()
         except urllib2.HTTPError as e:
             logging.error("ERROR: HTTPError code " + e.code + " encountered while making request - sleeping another iteration and retrying.")
