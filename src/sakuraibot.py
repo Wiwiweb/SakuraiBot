@@ -21,6 +21,7 @@ from time import sleep
 from datetime import datetime
 from json import loads
 from random import randint
+import unicodedata
 
 VERSION = "1.4"
 USER_AGENT = "SakuraiBot v" + VERSION + " by /u/Wiwiweb for /r/smashbros"
@@ -185,6 +186,7 @@ def getInfoFromPost(post_url, miiverse_cookie):
     logging.info("Post author: " + author)
     
     text = soup.find("p", {"class":"post-content-text"}).get_text()
+    text = unicodedata.normalize('NFKD', text).encode('ascii','ignore')
     logging.info("Post text: " + text)
     
     screenshot_container = soup.find("div", {"class":"screenshot-container"})
@@ -240,6 +242,7 @@ def getRandomBabble():
     """Get a random funny Sakurai-esque quote"""  
     rint = randint(0, len(sakurai_babbles)-1)
     return sakurai_babbles[rint]
+    
     
 def postToReddit(post_details):
     """Posts the new Miiverse post to /r/smashbros"""
