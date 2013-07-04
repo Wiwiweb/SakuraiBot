@@ -185,7 +185,7 @@ def getInfoFromPost(post_url, miiverse_cookie):
     author = soup.find("p", {"class":"user-name"}).find("a").get_text()
     logging.info("Post author: " + author)
     
-    text = soup.find("p", {"class":"post-content-text"}).get_text()
+    text = soup.find("p", {"class":"post-content-text"}).get_text().strip()
     text = unicodedata.normalize('NFKD', text).encode('ascii','ignore')
     logging.info("Post text: " + text)
     
