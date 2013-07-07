@@ -352,7 +352,7 @@ try:
         except urllib2.HTTPError as e:
             logging.error("ERROR: HTTPError code " + e.code + " encountered while making request - sleeping another iteration and retrying.")
         except urllib2.URLError as e:
-            logging.info("ERROR: URLError: " + e.reason + ". Sleeping another iteration and retrying.")
+            logging.info("ERROR: URLError: " + str(e.reason) + ". Sleeping another iteration and retrying.")
         except Exception as e:
             logging.info("ERROR: Unknown error: " + str(e) + ". Sleeping another iteration and retrying.")
                     
