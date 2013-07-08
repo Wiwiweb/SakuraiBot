@@ -253,50 +253,43 @@ def postToReddit(post_details):
     logging.info("Logged into Reddit.")
 
     date = datetime.now().strftime("%y-%m-%d")
+    author = post_details.author
+    title_format = "New " + author + " {type}! (" + date + ") {text}{extra}"
     text_too_long = False
     text_post = False
+    extra = ""
     if post_details.picture is None:
         # Self post
         text_post = True
-        title = ("New " + post_details.author + " post! (" + date + ") \""
-                 + post_details.text + "\" (No picture)")
-        if len(title) > 300:
-            title = ("New " + post_details.author + " post! (" + date
-                     + ") (Text too long! See post) (No picture)")
-            text_too_long = True
+        post_type = "post"
+        extra = "(No picture)"
     else:
-        # Link post
         if post_details.video is None:
-            title = ("New " + post_details.author + " picture! ("
-                     + date + ") \"" + post_details.text + "\"")
-            if len(title) > 300:
-                title = ("New " + post_details.author + " picture! ("
-                         + date + ") (Text too long! See comments)")
-                text_too_long = True
+            # Picture post
+            post_type = "picture"
             if miiverse_main:
-                submission = r.submit(subreddit, title,
-                                      url=post_details.picture)
+                url = post_details.picture
             else:
-                submission = r.submit(subreddit, title,
-                                      url=post_details.smashbros_pic)
+                url = post_details.smashbros_pic
         else:
-            title = ("New " + post_details.author + " video! ("
-                     + date + ") \"" + post_details.text + "\"")
-            if len(title) > 300:
-                title = ("New " + post_details.author + " video! ("
-                         + date + ") (Text too long! See comments)")
-                text_too_long = True
-            submission = r.submit(subreddit, title, url=post_details.video)
-        logging.info("New submission posted! " + submission.short_link)
+            # Video post
+            post_type = "video"
+            url = post_details.video
 
-    # Adding flair
-    # Temporary hack while PRAW gets updated
-    data = {'flair_template_id': ID_FLAIR_SSB4,
-            'link':              submission.fullname,
-            'name':              submission.fullname}
-    r.config.API_PATHS['select_flair'] = 'api/selectflair/'
-    r.request_json(r.config['select_flair'], data=data)
-    logging.info("Tagged as SSB4.")
+    text = '"' + post_details.text + '"'
+    title = title_format.format(type=post_type, text=text, extra=extra)
+    if len(title) > 300:
+        if text_post:
+            too_long_type = "post"
+        else:
+            too_long_type = "comment"
+        too_long = "(Text too long! See {})".format(too_long_type)
+        title = title_format.format(type=post_type, text=too_long, extra=extra)
+        text_too_long = True
+
+    if not text_post:
+        submission = r.submit(subreddit, title, url=url)
+        logging.info("New submission posted! " + submission.short_link)
 
     # Additional comment
     comment = ""
@@ -331,6 +324,15 @@ def postToReddit(post_details):
             logging.info("Comment posted.")
         else:
             logging.info("No comment posted.")
+
+    # Adding flair
+    # Temporary hack while PRAW gets updated
+    data = {'flair_template_id': ID_FLAIR_SSB4,
+            'link':              submission.fullname,
+            'name':              submission.fullname}
+    r.config.API_PATHS['select_flair'] = 'api/selectflair/'
+    r.request_json(r.config['select_flair'], data=data)
+    logging.info("Tagged as SSB4.")
 
 
 def setLastPost(post_url):
