@@ -100,10 +100,6 @@ for line in f:
     sakurai_babbles.append(line.strip())
 f.close()
 
-f = open(EXTRA_COMMENT_FILENAME, 'r')
-extra_comment = f.read().strip()
-f.close()
-
 class PostDetails:
     def __init__(self, author, text, picture, video, smashbros_pic):
         self.author = author
@@ -302,7 +298,7 @@ def postToReddit(post_details):
         comment += "Full text:  \n>" + reddit_text
         logging.info("Text too long. Added to comment.")
     if post_details.smashbros_pic is not None:
-        if comment is not "":
+        if comment != '':
             comment += "\n\n"
         if miiverse_main:
             comment += ("[Smashbros.com image (Slightly higher quality)]("
@@ -310,10 +306,14 @@ def postToReddit(post_details):
         else:
             comment += ("[Original Miiverse picture]("
                         + post_details.picture + ")")
-    if extra_comment is not None and extra_comment is not "":
-        if comment is not "":
+    f = open(EXTRA_COMMENT_FILENAME, 'r+')
+    extra_comment = f.read().strip()
+    if extra_comment != '':
+        if comment != '':
             comment += "\n\n"
         comment += extra_comment
+        f.write('')
+    f.close()
 
     if text_post:
         if comment is not "":
