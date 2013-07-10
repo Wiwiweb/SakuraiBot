@@ -36,6 +36,7 @@ IMGUR_CLIENT_ID = "45b2e3810d7d550"
 ID_FLAIR_SSB4 = "d31a17da-d4ad-11e2-a21c-12313d2c1c24"
 LAST_POST_FILENAME = "../res/last-post.txt"
 SAKURAI_BABBLES_FILENAME = "../res/sakurai-babbles.txt"
+EXTRA_COMMENT_FILENAME = "../res/extra-comment.txt"
 
 USERNAME = "SakuraiBot"
 MIIVERSE_USERNAME = "Wiwiweb"
@@ -93,13 +94,15 @@ f = open(MIIVERSE_PASSWORD_FILENAME, 'r')
 miiverse_password = f.read().strip()
 f.close()
 
-
 f = open(SAKURAI_BABBLES_FILENAME, 'r')
 sakurai_babbles = []
 for line in f:
     sakurai_babbles.append(line.strip())
 f.close()
 
+f = open(EXTRA_COMMENT_FILENAME, 'r')
+extra_comment = f.read().strip()
+f.close()
 
 class PostDetails:
     def __init__(self, author, text, picture, video, smashbros_pic):
@@ -307,6 +310,10 @@ def postToReddit(post_details):
         else:
             comment += ("[Original Miiverse picture]("
                         + post_details.picture + ")")
+    if extra_comment is not None and extra_comment is not "":
+        if comment is not "":
+            comment += "\\n\\n"
+        comment += extra_comment
 
     if text_post:
         if comment is not "":
