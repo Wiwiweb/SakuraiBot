@@ -361,7 +361,7 @@ try:
             logging.info("Starting the cycle again.")
             miiverse_cookie = getNewMiiverseCookie()
             post_url = getMiiverseLastPost(miiverse_cookie)
-            if isNewPost(post_url):
+            if isNewPost(post_url) or debug:
                 post_details = getInfoFromPost(post_url, miiverse_cookie)
                 if post_details.isPicturePost():
                     post_details.smashbros_pic = uploadToImgur(post_details)
