@@ -303,7 +303,7 @@ def postToReddit(post_details):
         logging.info("Text too long. Added to comment.")
     if post_details.smashbros_pic is not None:
         if comment is not "":
-            comment += "\\n\\n"
+            comment += "\n\n"
         if miiverse_main:
             comment += ("[Smashbros.com image (Slightly higher quality)]("
                         + post_details.smashbros_pic + ")")
@@ -312,7 +312,7 @@ def postToReddit(post_details):
                         + post_details.picture + ")")
     if extra_comment is not None and extra_comment is not "":
         if comment is not "":
-            comment += "\\n\\n"
+            comment += "\n\n"
         comment += extra_comment
 
     if text_post:
