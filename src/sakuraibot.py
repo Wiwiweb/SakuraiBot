@@ -100,6 +100,7 @@ for line in f:
     sakurai_babbles.append(line.strip())
 f.close()
 
+
 class PostDetails:
     def __init__(self, author, text, picture, video, smashbros_pic):
         self.author = author
@@ -306,13 +307,13 @@ def postToReddit(post_details):
         else:
             comment += ("[Original Miiverse picture]("
                         + post_details.picture + ")")
-    f = open(EXTRA_COMMENT_FILENAME, 'r+')
+    f = open(EXTRA_COMMENT_FILENAME, 'a+')
     extra_comment = f.read().strip()
     if extra_comment != '':
         if comment != '':
             comment += "\n\n"
         comment += extra_comment
-        f.write('')
+        f.truncate(0)  # Erase file
     f.close()
 
     if text_post:
