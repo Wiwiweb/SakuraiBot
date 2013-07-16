@@ -109,17 +109,17 @@ class PostDetails:
         self.video = video
         self.smashbros_pic = smashbros_pic
 
-    def isTextPost(self):
+    def is_text_post(self):
         return self.picture is None and self.video is None
 
-    def isPicturePost(self):
+    def is_picture_post(self):
         return self.picture is not None
 
-    def isVideoPost(self):
+    def is_video_post(self):
         return self.video is not None
 
 
-def getNewMiiverseCookie():
+def get_new_miiverse_cookie():
     cookies = cookielib.CookieJar()
     urllib2.HTTPCookieProcessor(cookies)
 
@@ -141,7 +141,7 @@ def getNewMiiverseCookie():
     return miiverse_cookie
 
 
-def getMiiverseLastPost(miiverse_cookie):
+def get_miiverse_last_post(miiverse_cookie):
     """Fetch the URL path to the last Miiverse post in the Director's room."""
     req = urllib2.Request(MIIVERSE_URL + MIIVERSE_DEVELOPER_PAGE)
     req.add_header("Cookie", "ms=" + miiverse_cookie)
@@ -159,7 +159,7 @@ def getMiiverseLastPost(miiverse_cookie):
         raise("Unknown error")
 
 
-def isNewPost(post_url):
+def is_new_post(post_url):
     """Compare the latest post URL to the ones we already processed."""
     postf = open(LAST_POST_FILENAME, 'r')
 
@@ -179,7 +179,7 @@ def isNewPost(post_url):
     return True
 
 
-def getInfoFromPost(post_url, miiverse_cookie):
+def get_info_from_post(post_url, miiverse_cookie):
     """Fetch author, text and picture URL from the post."""
     req = urllib2.Request(MIIVERSE_URL + post_url)
     req.add_header("Cookie", "ms=" + miiverse_cookie)
@@ -190,7 +190,6 @@ def getInfoFromPost(post_url, miiverse_cookie):
     logging.info("Post author: " + author)
 
     text = soup.find("p", {"class": "post-content-text"}).get_text().strip()
-    text = unicodedata.normalize('NFKD', text).encode('ascii', 'ignore')
     logging.info("Post text: " + text)
 
     screenshot_container = soup.find("div", {"class": "screenshot-container"})
@@ -213,7 +212,7 @@ def getInfoFromPost(post_url, miiverse_cookie):
     return PostDetails(author, text, picture_url, video_url, None)
 
 
-def uploadToImgur(post_details):
+def upload_to_imgur(post_details):
     """Upload the picture to imgur and returns the link."""
 
     # Request new access token
@@ -228,7 +227,6 @@ def uploadToImgur(post_details):
 
     # Upload picture
     parameters = {"image": SMASH_DAILY_PIC,
-                  "title": post_details.text,
                   "type":  "URL"}
     data = urlencode(parameters)
     req = urllib2.Request(IMGUR_UPLOAD_URL, data)
@@ -240,13 +238,13 @@ def uploadToImgur(post_details):
     return picture_url
 
 
-def getRandomBabble():
+def get_random_babble():
     """Get a random funny Sakurai-esque quote."""
     rint = randint(0, len(sakurai_babbles) - 1)
     return sakurai_babbles[rint]
 
 
-def postToReddit(post_details):
+def post_to_reddit(post_details):
     """Post the new Miiverse post to /r/smashbros."""
     r = praw.Reddit(user_agent=USER_AGENT)
     r.login(USERNAME, reddit_password)
@@ -313,21 +311,22 @@ def postToReddit(post_details):
         if comment != '':
             comment += "\n\n"
         comment += extra_comment
-        f.truncate(0)  # Erase file
+        if not debug:
+            f.truncate(0)  # Erase file
     f.close()
 
     if text_post:
-        if comment is not "":
+        if comment != '':
             submission = r.submit(subreddit, title, text=comment)
             logging.info("New self-post posted with extra text! "
                          + submission.short_link)
         else:
-            babble = getRandomBabble()
+            babble = get_random_babble()
             submission = r.submit(subreddit, title, text=babble)
             logging.info("New self-post posted with no extra text! "
                          + submission.short_link)
     else:
-        if comment is not "":
+        if comment != '':
             submission.add_comment(comment)
             logging.info("Comment posted.")
         else:
@@ -360,20 +359,20 @@ try:
     while True:
         try:
             logging.info("Starting the cycle again.")
-            miiverse_cookie = getNewMiiverseCookie()
-            post_url = getMiiverseLastPost(miiverse_cookie)
-            if isNewPost(post_url) or debug:
-                post_details = getInfoFromPost(post_url, miiverse_cookie)
-                if post_details.isPicturePost():
-                    post_details.smashbros_pic = uploadToImgur(post_details)
-                postToReddit(post_details)
+            miiverse_cookie = get_new_miiverse_cookie()
+            post_url = get_miiverse_last_post(miiverse_cookie)
+            if is_new_post(post_url) or debug:
+                post_details = get_info_from_post(post_url, miiverse_cookie)
+                if post_details.is_picture_post():
+                    post_details.smashbros_pic = upload_to_imgur(post_details)
+                post_to_reddit(post_details)
                 if not debug:
                     setLastPost(post_url)
 
             if debug:  # Don't loop in debug
                 quit()
         except urllib2.HTTPError as e:
-            logging.error("ERROR: HTTPError code " + e.code +
+            logging.error("ERROR: HTTPError code " + str(e.code) +
                           " encountered while making request "
                           "- sleeping another iteration and retrying.")
         except urllib2.URLError as e:
