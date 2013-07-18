@@ -286,7 +286,7 @@ def post_to_reddit(post_details):
         text_too_long = True
 
     if not text_post:
-        submission = r.submit(subreddit, title, url=url)
+        #submission = r.submit(subreddit, title, url=url)
         logging.info("New submission posted! " + submission.short_link)
 
     # Additional comment
@@ -305,14 +305,19 @@ def post_to_reddit(post_details):
         else:
             comment += ("[Original Miiverse picture]("
                         + post_details.picture + ")")
+    logging.debug('1')
     f = open(EXTRA_COMMENT_FILENAME, 'a+')
+    logging.debug('2')
     extra_comment = f.read().strip()
+    logging.debug('3')
     if extra_comment != '':
         if comment != '':
             comment += "\n\n"
         comment += extra_comment
+        logging.debug('4')
         if not debug:
             f.truncate(0)  # Erase file
+    logging.debug('5')
     f.close()
 
     if text_post:
@@ -371,19 +376,20 @@ try:
 
             if debug:  # Don't loop in debug
                 quit()
-        except urllib2.HTTPError as e:
-            logging.error("ERROR: HTTPError code " + str(e.code) +
-                          " encountered while making request "
-                          "- sleeping another iteration and retrying.")
-        except urllib2.URLError as e:
-            logging.info("ERROR: URLError: " + str(e.reason)
-                         + ". Sleeping another iteration and retrying.")
-        except Exception as e:
-            logging.info("ERROR: Unknown error: " + str(e)
-                         + ". Sleeping another iteration and retrying.")
-
-        sleep(FREQUENCY)
-
+            sleep(FREQUENCY)
+except urllib2.HTTPError as e:
+    logging.error("ERROR: HTTPError code " + str(e.code) +
+                  " encountered while making request."
+                  "Shutting down SakuraiBot.")
+    quit()
+except urllib2.URLError as e:
+    logging.info("ERROR: URLError: " + str(e.reason)
+                 + ". Shutting down SakuraiBot.")
+    quit()
+except Exception as e:
+    logging.info("ERROR: Unknown error: " + str(e)
+                 + ". Shutting down SakuraiBot.")
+    quit()
 except (KeyboardInterrupt):
     logging.info("Keyboard interrupt detected, shutting down Sakuraibot.")
     quit()
