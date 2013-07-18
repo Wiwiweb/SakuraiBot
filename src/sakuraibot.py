@@ -362,21 +362,21 @@ def setLastPost(post_url):
 # -------------------------------------------------
 try:
     while True:
-        try:
-            logging.info("Starting the cycle again.")
-            miiverse_cookie = get_new_miiverse_cookie()
-            post_url = get_miiverse_last_post(miiverse_cookie)
-            if is_new_post(post_url) or debug:
-                post_details = get_info_from_post(post_url, miiverse_cookie)
-                if post_details.is_picture_post():
-                    post_details.smashbros_pic = upload_to_imgur(post_details)
-                post_to_reddit(post_details)
-                if not debug:
-                    setLastPost(post_url)
+        logging.info("Starting the cycle again.")
+        miiverse_cookie = get_new_miiverse_cookie()
+        post_url = get_miiverse_last_post(miiverse_cookie)
+        if is_new_post(post_url) or debug:
+            post_details = get_info_from_post(post_url, miiverse_cookie)
+            if post_details.is_picture_post():
+                post_details.smashbros_pic = upload_to_imgur(post_details)
+            post_to_reddit(post_details)
+            if not debug:
+                setLastPost(post_url)
 
-            if debug:  # Don't loop in debug
-                quit()
-            sleep(FREQUENCY)
+        if debug:  # Don't loop in debug
+            quit()
+        sleep(FREQUENCY)
+
 except urllib2.HTTPError as e:
     logging.error("ERROR: HTTPError code " + str(e.code) +
                   " encountered while making request."
