@@ -119,6 +119,7 @@ class PostDetails:
     def is_video_post(self):
         return self.video is not None
 
+
 class SakuraiBot:
     def __init__(self, last_post_filename, extra_comment_filename):
         self.last_post_filename = last_post_filename
@@ -127,10 +128,10 @@ class SakuraiBot:
     def get_new_miiverse_cookie(self):
         cookies = cookielib.CookieJar()
         urllib2.HTTPCookieProcessor(cookies)
-    
+
         cookies = cookielib.CookieJar()
         opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(cookies))
-    
+
         parameters = {"client_id":     "ead88d8d450f40ada5682060a8885ec0",
                       "response_type": "code",
                       "redirect_uri":  MIIVERSE_CALLBACK_URL,
@@ -144,10 +145,9 @@ class SakuraiBot:
                 miiverse_cookie = cookie.value
                 break
         return miiverse_cookie
-    
-    
+
     def get_miiverse_last_post(self, miiverse_cookie):
-        """Fetch the URL path to the last Miiverse post in the Director's room."""
+        """Fetch the URL path to the last Miiverse post."""
         req = urllib2.Request(MIIVERSE_URL + MIIVERSE_DEVELOPER_PAGE)
         req.add_header("Cookie", "ms=" + miiverse_cookie)
         page = urllib2.urlopen(req).read()
@@ -158,18 +158,18 @@ class SakuraiBot:
             logging.info("Last post found: " + post_url)
             return post_url
         elif soup.find("form", {"id": "login_form"}):
-            logging.error("ERROR: Could not sign in to Miiverse. Shutting down.")
+            logging.error("ERROR: Could not sign in to Miiverse."
+                          " Shutting down.")
             quit()
         else:
             raise("Unknown error")
-    
-    
+
     def is_new_post(self, post_url):
         """Compare the latest post URL to the ones we already processed."""
         postf = open(self.last_post_filename, 'r')
-    
-        # We have to check 50 posts, because sometimes Miiverse will mess up the
-        # order and we might think it's a new post even though it's not.
+
+        # We have to check 50 posts, because sometimes Miiverse will mess up
+        # the order and we might think it's a new post even though it's not.
         for _ in range(49):  # Only 50 posts on the first page.
             seen_post = postf.readline().strip()
             if seen_post == post_url:
@@ -178,26 +178,27 @@ class SakuraiBot:
                 return False
             elif not seen_post:  # No more lines.
                 break
-    
+
         postf.close()
         logging.info("Post is new!")
         return True
-    
-    
+
     def get_info_from_post(self, post_url, miiverse_cookie):
         """Fetch author, text and picture URL from the post."""
         req = urllib2.Request(MIIVERSE_URL + post_url)
         req.add_header('Cookie', 'ms=' + miiverse_cookie)
         page = urllib2.urlopen(req).read()
         soup = BeautifulSoup(page)
-    
+
         author = soup.find('p', {'class': 'user-name'}).find('a').get_text()
         logging.info("Post author: " + author)
-    
-        text = soup.find('p', {'class': 'post-content-text'}).get_text().strip()
+
+        text = soup.find('p', {'class': 'post-content-text'}) \
+            .get_text().strip()
         logging.info("Post text: " + text)
-    
-        screenshot_container = soup.find('div', {'class': 'screenshot-container'})
+
+        screenshot_container = soup.find('div',
+                                         {'class': 'screenshot-container'})
         if screenshot_container is None:
             # Text post
             picture_url = None
@@ -206,20 +207,20 @@ class SakuraiBot:
         elif 'video' in screenshot_container['class']:
             # Video post
             picture_url = None
-            video_url = soup.find('p', {'class': 'url-link'}).find('a').get('href')
+            video_url = soup.find('p', {'class': 'url-link'})\
+                .find('a').get('href')
             logging.info("Post video: " + video_url)
         else:
             # Picture post
             picture_url = screenshot_container.find('img').get('src')
             video_url = None
             logging.info("Post picture: " + picture_url)
-    
+
         return PostDetails(author, text, picture_url, video_url, None)
-    
-    
+
     def upload_to_imgur(self, post_details, album_id):
         """Upload the picture to imgur and returns the link."""
-    
+
         # Request new access token
         parameters = {'refresh_token': imgur_token,
                       'client_id':     IMGUR_CLIENT_ID,
@@ -229,7 +230,7 @@ class SakuraiBot:
         req = urllib2.Request(IMGUR_REFRESH_URL, data)
         json_resp = loads(urllib2.urlopen(req).read())
         imgur_access_token = json_resp['access_token']
-    
+
         # Upload picture
         parameters = {'image': SMASH_DAILY_PIC,
                       'title': post_details.text,
@@ -239,31 +240,30 @@ class SakuraiBot:
         req = urllib2.Request(IMGUR_UPLOAD_URL, data)
         req.add_header('Authorization', 'Bearer ' + imgur_access_token)
         json_resp = loads(urllib2.urlopen(req).read())
-    
+
         picture_url = json_resp['data']['link']
         logging.info("Uploaded to imgur! " + picture_url)
         return picture_url
-    
-    
+
     def get_random_babble(self):
         """Get a random funny Sakurai-esque quote."""
         rint = randint(0, len(sakurai_babbles) - 1)
         return sakurai_babbles[rint]
-    
-    
+
     def post_to_reddit(self, post_details, subreddit, username, password):
-        """Post the new Miiverse post to /r/smashbros and returns the submission."""
+        """Post the Miiverse post to subreddit and returns the submission."""
         r = praw.Reddit(user_agent=USER_AGENT)
         r.login(username, password)
         logging.info("Logged into Reddit.")
-    
+
         date = datetime.now().strftime('%y-%m-%d')
         author = post_details.author
-        title_format = "New " + author + " {type}! (" + date + ") {text}{extra}"
+        title_format = "New " + author + " {type}! (" + \
+                       date + ") {text}{extra}"
         text_too_long = False
         text_post = False
         extra = ''
-        if post_details.picture is None:
+        if post_details.picture is None and post_details.video is None:
             # Self post
             text_post = True
             post_type = "post"
@@ -280,7 +280,7 @@ class SakuraiBot:
                 # Video post
                 post_type = "video"
                 url = post_details.video
-    
+
         text = '"' + post_details.text + '"'
         title = title_format.format(type=post_type, text=text, extra=extra)
         if len(title) > 300:
@@ -289,13 +289,15 @@ class SakuraiBot:
             else:
                 too_long_type = "comment"
             too_long = "(Text too long! See {})".format(too_long_type)
-            title = title_format.format(type=post_type, text=too_long, extra=extra)
+            title = title_format.format(type=post_type,
+                                        text=too_long,
+                                        extra=extra)
             text_too_long = True
-    
+
         if not text_post:
             submission = r.submit(subreddit, title, url=url)
             logging.info("New submission posted! " + submission.short_link)
-    
+
         # Additional comment
         comment = ''
         if text_too_long:
@@ -321,7 +323,7 @@ class SakuraiBot:
             if not debug:
                 f.truncate(0)  # Erase file
         f.close()
-    
+
         if text_post:
             if comment != '':
                 submission = r.submit(subreddit, title, text=comment)
@@ -338,7 +340,7 @@ class SakuraiBot:
                 logging.info("Comment posted.")
             else:
                 logging.info("No comment posted.")
-    
+
         # Adding flair
         # Temporary hack while PRAW gets updated
         data = {'flair_template_id': ID_FLAIR_SSB4,
@@ -348,9 +350,8 @@ class SakuraiBot:
         r.request_json(r.config['select_flair'], data=data)
         logging.info("Tagged as SSB4.")
 
-        return submission
-    
-    
+        return r.get_submission(submission_id=submission.id, comment_limit=1)
+
     def set_last_post(self, post_url):
         """Add the last post to the top of the remembered posts file."""
         postf = open(self.last_post_filename, "r+")
@@ -364,36 +365,49 @@ class SakuraiBot:
 # -------------------------------------------------
 # Main loop
 # -------------------------------------------------
-if __name__=='__main__':
+if __name__ == '__main__':
     try:
         while True:
             try:
+                retry_on_error = True
                 logging.info("Starting the cycle again.")
                 sbot = SakuraiBot(LAST_POST_FILENAME, EXTRA_COMMENT_FILENAME)
                 miiverse_cookie = sbot.get_new_miiverse_cookie()
                 post_url = sbot.get_miiverse_last_post(miiverse_cookie)
                 if sbot.is_new_post(post_url) or debug:
-                    post_details = sbot.get_info_from_post(post_url, miiverse_cookie)
+                    post_details = sbot.get_info_from_post(post_url,
+                                                           miiverse_cookie)
                     if post_details.is_picture_post():
-                        post_details.smashbros_pic = sbot.upload_to_imgur(post_details, IMGUR_ALBUM_ID)
-                    sbot.post_to_reddit(post_details, USERNAME, reddit_password)
+                        post_details.smashbros_pic =\
+                            sbot.upload_to_imgur(post_details, IMGUR_ALBUM_ID)
+                    retry_on_error = False
+                    sbot.post_to_reddit(post_details,
+                                        USERNAME, reddit_password)
                     if not debug:
                         sbot.setLastPost(post_url)
-    
+
                 if debug:  # Don't loop in debug
                     quit()
+
             except urllib2.HTTPError as e:
                 logging.error("ERROR: HTTPError code " + str(e.code) +
                               " encountered while making request "
                               "- sleeping another iteration and retrying.")
+                if not retry_on_error:
+                    quit()
             except urllib2.URLError as e:
                 logging.info("ERROR: URLError: " + str(e.reason)
                              + ". Sleeping another iteration and retrying.")
+                if not retry_on_error:
+                    quit()
             except Exception as e:
                 logging.info("ERROR: Unknown error: " + str(e)
                              + ". Sleeping another iteration and retrying.")
+                if not retry_on_error:
+                    quit()
+
             sleep(FREQUENCY)
-    
+
     except (KeyboardInterrupt):
         logging.info("Keyboard interrupt detected, shutting down Sakuraibot.")
         quit()
