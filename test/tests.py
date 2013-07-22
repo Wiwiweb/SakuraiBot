@@ -5,7 +5,6 @@ Author: Wiwiweb
 
 SakuraiBot test suite
 '''
-from lxml.html.builder import IMG
 
 import unittest
 import sakuraibot
@@ -274,3 +273,6 @@ class RedditTests(unittest.TestCase):
         self.assertEquals(title, submission.title.encode('utf-8'))
         self.assertEquals(video, submission.url)
         #TODO test comment
+
+if __name__ == '__main__':
+    unittest.main()
