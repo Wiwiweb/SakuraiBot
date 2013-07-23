@@ -38,12 +38,12 @@ class CodeFormatTests(unittest.TestCase):
     def test_pep8_conformance(self):
         pep8style = pep8.StyleGuide(quiet=True)
         result = pep8style.check_files(['../src/sakuraibot.py', 'tests.py'])
-        print result.lines
         self.assertFalse(result.total_errors, result.messages)
 
     def test_pep257_conformance(self):
         result = pep257.check_files(['../src/sakuraibot.py', 'tests.py'])
         self.assertFalse(result)
+
 
 class BasicTests(unittest.TestCase):
 
