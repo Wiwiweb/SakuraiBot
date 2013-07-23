@@ -21,9 +21,8 @@ from time import sleep
 from datetime import datetime
 from json import loads
 from random import randint
-import unicodedata
 
-VERSION = "1.4"
+VERSION = "1.5"
 USER_AGENT = "SakuraiBot v" + VERSION + " by /u/Wiwiweb for /r/smashbros"
 FREQUENCY = 300
 
@@ -31,21 +30,23 @@ REDDIT_PASSWORD_FILENAME = "../res/private/reddit-password.txt"
 MIIVERSE_PASSWORD_FILENAME = "../res/private/miiverse-password.txt"
 IMGUR_REFRESH_TOKEN_FILENAME = "../res/private/imgur-refresh-token.txt"
 IMGUR_CLIENT_SECRET_FILENAME = "../res/private/imgur-client-secret.txt"
-
-IMGUR_CLIENT_ID = '45b2e3810d7d550'
-ID_FLAIR_SSB4 = 'd31a17da-d4ad-11e2-a21c-12313d2c1c24'
 LAST_POST_FILENAME = "../res/last-post.txt"
 SAKURAI_BABBLES_FILENAME = "../res/sakurai-babbles.txt"
 EXTRA_COMMENT_FILENAME = "../res/extra-comment.txt"
+LOG_FILE = "../logs/sakuraibot.log"
+
+IMGUR_CLIENT_ID = '45b2e3810d7d550'
+IMGUR_ALBUM_ID = '8KnTr'
+ID_FLAIR_SSB4 = 'd31a17da-d4ad-11e2-a21c-12313d2c1c24'
 
 USERNAME = 'SakuraiBot'
 MIIVERSE_USERNAME = 'Wiwiweb'
+
 MIIVERSE_URL = "https://miiverse.nintendo.net"
 MIIVERSE_CALLBACK_URL = "https://miiverse.nintendo.net/auth/callback"
 MIIVERSE_DEVELOPER_PAGE = "/titles/14866558073037299863/14866558073037300685"
 IMGUR_UPLOAD_URL = "https://api.imgur.com/3/image"
 IMGUR_REFRESH_URL = "https://api.imgur.com/oauth2/token"
-IMGUR_ALBUM_ID = '8KnTr'
 SMASH_DAILY_PIC = "http://www.smashbros.com/update/images/daily.jpg"
 NINTENDO_LOGIN_PAGE = "https://id.nintendo.net/oauth/authorize"
 
@@ -61,8 +62,7 @@ if debug:
                         format='%(asctime)s: %(message)s')
 else:
     # Logging
-    timed_logger = TimedRotatingFileHandler('../logs/sakuraibot.log',
-                                            'midnight')
+    timed_logger = TimedRotatingFileHandler(LOG_FILE, 'midnight')
     timed_logger.setFormatter(logging.Formatter('%(asctime)s: %(message)s'))
     timed_logger.setLevel(logging.INFO)
 
@@ -232,10 +232,10 @@ class SakuraiBot:
         imgur_access_token = json_resp['access_token']
 
         # Upload picture
-        parameters = {'image': SMASH_DAILY_PIC,
-                      'title': post_details.text,
+        parameters = {'image':    SMASH_DAILY_PIC,
+                      'title':    post_details.text,
                       'album_id': album_id,
-                      'type':  'URL'}
+                      'type':     'URL'}
         data = urlencode(parameters)
         req = urllib2.Request(IMGUR_UPLOAD_URL, data)
         req.add_header('Authorization', 'Bearer ' + imgur_access_token)
@@ -381,7 +381,7 @@ if __name__ == '__main__':
                         post_details.smashbros_pic =\
                             sbot.upload_to_imgur(post_details, IMGUR_ALBUM_ID)
                     retry_on_error = False
-                    sbot.post_to_reddit(post_details,
+                    sbot.post_to_reddit(post_details, subreddit,
                                         USERNAME, reddit_password)
                     if not debug:
                         sbot.setLastPost(post_url)

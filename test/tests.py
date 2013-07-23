@@ -7,6 +7,8 @@ SakuraiBot test suite
 '''
 
 import unittest
+import pep8
+import pep257
 import sakuraibot
 import urllib2
 import uuid
@@ -16,7 +18,8 @@ from datetime import datetime
 from json import loads
 from shutil import copy
 from filecmp import cmp
-from os import remove
+from os import remove, path
+from sys import modules
 
 USERNAME = 'SakuraiBot_test'
 SUBREDDIT = 'SakuraiBot_test'
@@ -27,10 +30,20 @@ LAST_POST_FILENAME = "last-post.txt"
 EXTRA_COMMENT_FILENAME = "extra-comment.txt"
 IMGUR_CLIENT_ID = '45b2e3810d7d550'
 
-f = open(REDDIT_PASSWORD_FILENAME, 'r')
-reddit_password = f.read().strip()
-f.close()
+REDDIT_PASSWORD = sakuraibot.reddit_password
 
+
+class CodeFormatTests(unittest.TestCase):
+
+    def test_pep8_conformance(self):
+        pep8style = pep8.StyleGuide(quiet=True)
+        result = pep8style.check_files(['../src/sakuraibot.py', 'tests.py'])
+        print result.lines
+        self.assertFalse(result.total_errors, result.messages)
+
+    def test_pep257_conformance(self):
+        result = pep257.check_files(['../src/sakuraibot.py', 'tests.py'])
+        self.assertFalse(result)
 
 class BasicTests(unittest.TestCase):
 
@@ -163,7 +176,7 @@ class RedditTests(unittest.TestCase):
         self.sbot = sakuraibot.SakuraiBot(LAST_POST_FILENAME,
                                           EXTRA_COMMENT_FILENAME)
         self.r = praw.Reddit(user_agent=USER_AGENT)
-        self.r.login(USERNAME, reddit_password)
+        self.r.login(USERNAME, REDDIT_PASSWORD)
         self.subreddit = self.r.get_subreddit(SUBREDDIT)
         self.r.config.cache_timeout = 0
 
@@ -174,7 +187,7 @@ class RedditTests(unittest.TestCase):
         post_details = sakuraibot.PostDetails('Pug', unique_text,
                                               None, None, None)
         submission = self.sbot.post_to_reddit(post_details, SUBREDDIT,
-                                              USERNAME, reddit_password)
+                                              USERNAME, REDDIT_PASSWORD)
         self.assertEquals(submission,
                           self.subreddit.get_new(limit=1).next())
         self.assertEquals(submission,
@@ -196,7 +209,7 @@ class RedditTests(unittest.TestCase):
         post_details = sakuraibot.PostDetails('Pug', unique_text,
                                               None, None, None)
         submission = self.sbot.post_to_reddit(post_details, SUBREDDIT,
-                                              USERNAME, reddit_password)
+                                              USERNAME, REDDIT_PASSWORD)
         self.assertEquals(submission,
                           self.subreddit.get_new(limit=1).next())
         self.assertEquals(submission,
@@ -216,7 +229,7 @@ class RedditTests(unittest.TestCase):
         post_details = sakuraibot.PostDetails('Pug', unique_text,
                                               picture, None, picture)
         submission = self.sbot.post_to_reddit(post_details, SUBREDDIT,
-                                              USERNAME, reddit_password)
+                                              USERNAME, REDDIT_PASSWORD)
         self.assertEquals(submission,
                           self.subreddit.get_new(limit=1).next())
         self.assertEquals(submission,
@@ -240,7 +253,7 @@ class RedditTests(unittest.TestCase):
         post_details = sakuraibot.PostDetails('Pug', unique_text,
                                               picture, None, picture)
         submission = self.sbot.post_to_reddit(post_details, SUBREDDIT,
-                                              USERNAME, reddit_password)
+                                              USERNAME, REDDIT_PASSWORD)
         self.assertEquals(submission,
                           self.subreddit.get_new(limit=1).next())
         self.assertEquals(submission,
@@ -263,7 +276,7 @@ class RedditTests(unittest.TestCase):
         post_details = sakuraibot.PostDetails('Pug', unique_text,
                                               None, video, None)
         submission = self.sbot.post_to_reddit(post_details, SUBREDDIT,
-                                              USERNAME, reddit_password)
+                                              USERNAME, REDDIT_PASSWORD)
         self.assertEquals(submission,
                           self.subreddit.get_new(limit=1).next())
         self.assertEquals(submission,
