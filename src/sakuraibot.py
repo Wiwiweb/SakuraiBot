@@ -362,6 +362,13 @@ class SakuraiBot:
         logging.info("New post remembered.")
 
 
+def retry_or_die():
+    if not retry_on_error:
+        logging.error("ERROR: Shutting down SakuraiBot.")
+        quit()
+    else:
+        logging.error("ERROR: Sleeping another cycle and retrying.")
+
 # -------------------------------------------------
 # Main loop
 # -------------------------------------------------
@@ -384,27 +391,21 @@ if __name__ == '__main__':
                     sbot.post_to_reddit(post_details, subreddit,
                                         USERNAME, reddit_password)
                     if not debug:
-                        sbot.setLastPost(post_url)
+                        sbot.set_last_post(post_url)
 
                 if debug:  # Don't loop in debug
                     quit()
 
             except urllib2.HTTPError as e:
                 logging.error("ERROR: HTTPError code " + str(e.code) +
-                              " encountered while making request "
-                              "- sleeping another iteration and retrying.")
-                if not retry_on_error:
-                    quit()
+                              " encountered while making request.")
+                retry_or_die()
             except urllib2.URLError as e:
-                logging.info("ERROR: URLError: " + str(e.reason)
-                             + ". Sleeping another iteration and retrying.")
-                if not retry_on_error:
-                    quit()
+                logging.error("ERROR: URLError: " + str(e.reason))
+                retry_or_die()
             except Exception as e:
-                logging.info("ERROR: Unknown error: " + str(e)
-                             + ". Sleeping another iteration and retrying.")
-                if not retry_on_error:
-                    quit()
+                logging.error("ERROR: Unknown error: " + str(e))
+                retry_or_die()
 
             sleep(FREQUENCY)
 
