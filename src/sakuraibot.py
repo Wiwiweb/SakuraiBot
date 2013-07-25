@@ -273,30 +273,33 @@ class SakuraiBot:
             self.logger.info("New submission posted! " + submission.short_link)
 
         # Additional comment
-        comment = ''
+        comment = '{full_text} \n\n' \
+                  '{original_picture} {album_link} \n\n' \
+                  '{extra_comment}'
         if text_too_long:
             # Reddit formatting
             reddit_text = post_details.text.replace("\r\n", "  \n")
-            comment += "Full text:  \n>" + reddit_text
+            full_text = "Full text:  \n>" + reddit_text
             self.logger.info("Text too long. Added to comment.")
-        if post_details.smashbros_pic is not None:
-            if comment != '':
-                comment += "\n\n"
-            if self.miiverse_main:
-                comment += ("[Smashbros.com image (Slightly higher quality)]("
-                            + post_details.smashbros_pic + ")")
-            else:
-                comment += ("[Original Miiverse picture]("
-                            + post_details.picture + ")")
+        else:
+            full_text = ''
+        if post_details.picture is not None:
+            original_picture = ("[Original Miiverse picture]("
+                                + post_details.picture + ") |")
+        else:
+            original_picture = ''
+        album_link = ("[Pic of the Day album](http://imgur.com/a/"
+                      + self.imgur_album + ")")
         f = open(self.extra_comment_filename, 'a+')
         extra_comment = f.read().strip()
-        if extra_comment != '':
-            if comment != '':
-                comment += "\n\n"
-            comment += extra_comment
-            if not self.debug:
-                f.truncate(0)  # Erase file
+        f.truncate(0)  # Erase file
         f.close()
+
+        comment = comment.format(full_text=full_text,
+                                 original_picture=original_picture,
+                                 album_link=album_link,
+                                 extra_comment=extra_comment)
+        comment = comment.strip()
 
         if text_post:
             if comment != '':
@@ -338,7 +341,6 @@ class SakuraiBot:
     def bot_cycle(self):
         global retry_on_error
         retry_on_error = True
-        self.logger.info("Starting the cycle again.")
         miiverse_cookie = self.get_new_miiverse_cookie()
         post_url = self.get_miiverse_last_post(miiverse_cookie)
         if self.is_new_post(post_url) or self.debug:
