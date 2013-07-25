@@ -1,5 +1,5 @@
 #!/usr/bin/python
-'''
+"""
 Created on 2013-06-14
 Author: Wiwiweb
 
@@ -7,39 +7,31 @@ Reddit bot to fetch Miiverse posts by Smash Bros creator Sakurai.
 
 Some parts inspired by reddit-xkcdbot's source code.
 https://github.com/trisweb/reddit-xkcdbot
-'''
+"""
 
 import praw
-import logging
-from logging.handlers import TimedRotatingFileHandler
-import sys
 import urllib2
 import cookielib
+from logging import getLogger
 from urllib import urlencode
 from bs4 import BeautifulSoup
-from time import sleep
 from datetime import datetime
 from json import loads
 from random import randint
 
 VERSION = "1.5"
 USER_AGENT = "SakuraiBot v" + VERSION + " by /u/Wiwiweb for /r/smashbros"
-FREQUENCY = 300
 
 REDDIT_PASSWORD_FILENAME = "../res/private/reddit-password.txt"
 MIIVERSE_PASSWORD_FILENAME = "../res/private/miiverse-password.txt"
 IMGUR_REFRESH_TOKEN_FILENAME = "../res/private/imgur-refresh-token.txt"
 IMGUR_CLIENT_SECRET_FILENAME = "../res/private/imgur-client-secret.txt"
-LAST_POST_FILENAME = "../res/last-post.txt"
 SAKURAI_BABBLES_FILENAME = "../res/sakurai-babbles.txt"
-EXTRA_COMMENT_FILENAME = "../res/extra-comment.txt"
-LOG_FILE = "../logs/sakuraibot.log"
 
 IMGUR_CLIENT_ID = '45b2e3810d7d550'
-IMGUR_ALBUM_ID = '8KnTr'
+
 ID_FLAIR_SSB4 = 'd31a17da-d4ad-11e2-a21c-12313d2c1c24'
 
-USERNAME = 'SakuraiBot'
 MIIVERSE_USERNAME = 'Wiwiweb'
 
 MIIVERSE_URL = "https://miiverse.nintendo.net"
@@ -49,35 +41,6 @@ IMGUR_UPLOAD_URL = "https://api.imgur.com/3/image"
 IMGUR_REFRESH_URL = "https://api.imgur.com/oauth2/token"
 SMASH_DAILY_PIC = "http://www.smashbros.com/update/images/daily.jpg"
 NINTENDO_LOGIN_PAGE = "https://id.nintendo.net/oauth/authorize"
-
-if len(sys.argv) > 1 and '--debug' in sys.argv:
-    debug = True
-    subreddit = 'SakuraiBot_test'
-else:
-    debug = False
-    subreddit = 'smashbros'
-
-if debug:
-    logging.basicConfig(stream=sys.stdout, level=logging.DEBUG,
-                        format='%(asctime)s: %(message)s')
-else:
-    # Logging
-    timed_logger = TimedRotatingFileHandler(LOG_FILE, 'midnight')
-    timed_logger.setFormatter(logging.Formatter('%(asctime)s: %(message)s'))
-    timed_logger.setLevel(logging.INFO)
-
-    root_logger = logging.getLogger()
-    root_logger.setLevel(logging.INFO)
-    root_logger.addHandler(timed_logger)
-
-logging.info("--- Starting sakuraibot ---")
-
-if len(sys.argv) > 1 and '--miiverse' in sys.argv:
-    miiverse_main = True
-    logging.info("Main pic: Miiverse")
-else:
-    miiverse_main = False
-    logging.info("Main pic: smashbros.com")
 
 f = open(REDDIT_PASSWORD_FILENAME, 'r')
 reddit_password = f.read().strip()
@@ -121,9 +84,17 @@ class PostDetails:
 
 
 class SakuraiBot:
-    def __init__(self, last_post_filename, extra_comment_filename):
+    def __init__(self, username, subreddit, imgur_album, last_post_filename,
+                 extra_comment_filename, logger=getLogger(),
+                 miiverse_main=False, debug=False):
+        self.username = username
+        self.subreddit = subreddit
+        self.imgur_album = imgur_album
         self.last_post_filename = last_post_filename
         self.extra_comment_filename = extra_comment_filename
+        self.logger = logger
+        self.miiverse_main = miiverse_main
+        self.debug = debug
 
     def get_new_miiverse_cookie(self):
         cookies = cookielib.CookieJar()
@@ -132,14 +103,15 @@ class SakuraiBot:
         cookies = cookielib.CookieJar()
         opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(cookies))
 
-        parameters = {"client_id":     "ead88d8d450f40ada5682060a8885ec0",
-                      "response_type": "code",
-                      "redirect_uri":  MIIVERSE_CALLBACK_URL,
-                      "username":      MIIVERSE_USERNAME,
-                      "password":      miiverse_password}
+        parameters = {'client_id':     'ead88d8d450f40ada5682060a8885ec0',
+                      'response_type': 'code',
+                      'redirect_uri':  MIIVERSE_CALLBACK_URL,
+                      'username':      MIIVERSE_USERNAME,
+                      'password':      miiverse_password}
         data = urlencode(parameters)
         req = urllib2.Request(NINTENDO_LOGIN_PAGE, data)
         opener.open(req)
+        miiverse_cookie = None
         for cookie in cookies:
             if cookie.name == 'ms':
                 miiverse_cookie = cookie.value
@@ -149,17 +121,17 @@ class SakuraiBot:
     def get_miiverse_last_post(self, miiverse_cookie):
         """Fetch the URL path to the last Miiverse post."""
         req = urllib2.Request(MIIVERSE_URL + MIIVERSE_DEVELOPER_PAGE)
-        req.add_header("Cookie", "ms=" + miiverse_cookie)
+        req.add_header('Cookie', 'ms=' + miiverse_cookie)
         page = urllib2.urlopen(req).read()
         soup = BeautifulSoup(page)
-        post_url_class = soup.find("div", {"class": "post"})
+        post_url_class = soup.find('div', {'class': 'post'})
         if post_url_class is not None:
-            post_url = post_url_class.get("data-href")
-            logging.info("Last post found: " + post_url)
+            post_url = post_url_class.get('data-href')
+            self.logger.info("Last post found: " + post_url)
             return post_url
-        elif soup.find("form", {"id": "login_form"}):
-            logging.error("ERROR: Could not sign in to Miiverse."
-                          " Shutting down.")
+        elif soup.find('form', {'id': 'login_form'}):
+            self.logger.error("ERROR: Could not sign in to Miiverse."
+                              " Shutting down.")
             quit()
         else:
             raise("Unknown error")
@@ -174,13 +146,13 @@ class SakuraiBot:
             seen_post = postf.readline().strip()
             if seen_post == post_url:
                 postf.close()
-                logging.info("Post was already posted")
+                self.logger.info("Post was already posted")
                 return False
             elif not seen_post:  # No more lines.
                 break
 
         postf.close()
-        logging.info("Post is new!")
+        self.logger.info("Post is new!")
         return True
 
     def get_info_from_post(self, post_url, miiverse_cookie):
@@ -191,11 +163,11 @@ class SakuraiBot:
         soup = BeautifulSoup(page)
 
         author = soup.find('p', {'class': 'user-name'}).find('a').get_text()
-        logging.info("Post author: " + author)
+        self.logger.info("Post author: " + author)
 
         text = soup.find('p', {'class': 'post-content-text'}) \
             .get_text().strip()
-        logging.info("Post text: " + text)
+        self.logger.info("Post text: " + text)
 
         screenshot_container = soup.find('div',
                                          {'class': 'screenshot-container'})
@@ -203,22 +175,22 @@ class SakuraiBot:
             # Text post
             picture_url = None
             video_url = None
-            logging.info("No picture or video found.")
+            self.logger.info("No picture or video found.")
         elif 'video' in screenshot_container['class']:
             # Video post
             picture_url = None
             video_url = soup.find('p', {'class': 'url-link'})\
                 .find('a').get('href')
-            logging.info("Post video: " + video_url)
+            self.logger.info("Post video: " + video_url)
         else:
             # Picture post
             picture_url = screenshot_container.find('img').get('src')
             video_url = None
-            logging.info("Post picture: " + picture_url)
+            self.logger.info("Post picture: " + picture_url)
 
         return PostDetails(author, text, picture_url, video_url, None)
 
-    def upload_to_imgur(self, post_details, album_id):
+    def upload_to_imgur(self, post_details):
         """Upload the picture to imgur and returns the link."""
 
         # Request new access token
@@ -234,7 +206,7 @@ class SakuraiBot:
         # Upload picture
         parameters = {'image':    SMASH_DAILY_PIC,
                       'title':    post_details.text,
-                      'album_id': album_id,
+                      'album_id': self.imgur_album,
                       'type':     'URL'}
         data = urlencode(parameters)
         req = urllib2.Request(IMGUR_UPLOAD_URL, data)
@@ -242,7 +214,7 @@ class SakuraiBot:
         json_resp = loads(urllib2.urlopen(req).read())
 
         picture_url = json_resp['data']['link']
-        logging.info("Uploaded to imgur! " + picture_url)
+        self.logger.info("Uploaded to imgur! " + picture_url)
         return picture_url
 
     def get_random_babble(self):
@@ -250,11 +222,11 @@ class SakuraiBot:
         rint = randint(0, len(sakurai_babbles) - 1)
         return sakurai_babbles[rint]
 
-    def post_to_reddit(self, post_details, subreddit, username, password):
+    def post_to_reddit(self, post_details):
         """Post the Miiverse post to subreddit and returns the submission."""
         r = praw.Reddit(user_agent=USER_AGENT)
-        r.login(username, password)
-        logging.info("Logged into Reddit.")
+        r.login(self.username, reddit_password)
+        self.logger.info("Logged into Reddit.")
 
         date = datetime.now().strftime('%y-%m-%d')
         author = post_details.author
@@ -263,6 +235,8 @@ class SakuraiBot:
         text_too_long = False
         text_post = False
         extra = ''
+        url = ''
+        submission = None
         if post_details.picture is None and post_details.video is None:
             # Self post
             text_post = True
@@ -272,7 +246,7 @@ class SakuraiBot:
             if post_details.video is None:
                 # Picture post
                 post_type = "picture"
-                if miiverse_main:
+                if self.miiverse_main:
                     url = post_details.picture
                 else:
                     url = post_details.smashbros_pic
@@ -295,8 +269,8 @@ class SakuraiBot:
             text_too_long = True
 
         if not text_post:
-            submission = r.submit(subreddit, title, url=url)
-            logging.info("New submission posted! " + submission.short_link)
+            submission = r.submit(self.subreddit, title, url=url)
+            self.logger.info("New submission posted! " + submission.short_link)
 
         # Additional comment
         comment = ''
@@ -304,42 +278,42 @@ class SakuraiBot:
             # Reddit formatting
             reddit_text = post_details.text.replace("\r\n", "  \n")
             comment += "Full text:  \n>" + reddit_text
-            logging.info("Text too long. Added to comment.")
+            self.logger.info("Text too long. Added to comment.")
         if post_details.smashbros_pic is not None:
             if comment != '':
                 comment += "\n\n"
-            if miiverse_main:
+            if self.miiverse_main:
                 comment += ("[Smashbros.com image (Slightly higher quality)]("
                             + post_details.smashbros_pic + ")")
             else:
                 comment += ("[Original Miiverse picture]("
                             + post_details.picture + ")")
-        f = open(EXTRA_COMMENT_FILENAME, 'a+')
+        f = open(self.extra_comment_filename, 'a+')
         extra_comment = f.read().strip()
         if extra_comment != '':
             if comment != '':
                 comment += "\n\n"
             comment += extra_comment
-            if not debug:
+            if not self.debug:
                 f.truncate(0)  # Erase file
         f.close()
 
         if text_post:
             if comment != '':
-                submission = r.submit(subreddit, title, text=comment)
-                logging.info("New self-post posted with extra text! "
-                             + submission.short_link)
+                submission = r.submit(self.subreddit, title, text=comment)
+                self.logger.info("New self-post posted with extra text! "
+                                 + submission.short_link)
             else:
                 babble = self.get_random_babble()
-                submission = r.submit(subreddit, title, text=babble)
-                logging.info("New self-post posted with no extra text! "
-                             + submission.short_link)
+                submission = r.submit(self.subreddit, title, text=babble)
+                self.logger.info("New self-post posted with no extra text! "
+                                 + submission.short_link)
         else:
             if comment != '':
                 submission.add_comment(comment)
-                logging.info("Comment posted.")
+                self.logger.info("Comment posted.")
             else:
-                logging.info("No comment posted.")
+                self.logger.info("No comment posted.")
 
         # Adding flair
         # Temporary hack while PRAW gets updated
@@ -348,7 +322,7 @@ class SakuraiBot:
                 'name':              submission.fullname}
         r.config.API_PATHS['select_flair'] = 'api/selectflair/'
         r.request_json(r.config['select_flair'], data=data)
-        logging.info("Tagged as SSB4.")
+        self.logger.info("Tagged as SSB4.")
 
         return r.get_submission(submission_id=submission.id, comment_limit=1)
 
@@ -359,56 +333,21 @@ class SakuraiBot:
         postf.seek(0)
         postf.write(post_url + "\n" + old)
         postf.close()
-        logging.info("New post remembered.")
+        self.logger.info("New post remembered.")
 
-
-def retry_or_die():
-    if not retry_on_error:
-        logging.error("ERROR: Shutting down SakuraiBot.")
-        quit()
-    else:
-        logging.error("ERROR: Sleeping another cycle and retrying.")
-
-# -------------------------------------------------
-# Main loop
-# -------------------------------------------------
-if __name__ == '__main__':
-    try:
-        while True:
-            try:
-                retry_on_error = True
-                logging.info("Starting the cycle again.")
-                sbot = SakuraiBot(LAST_POST_FILENAME, EXTRA_COMMENT_FILENAME)
-                miiverse_cookie = sbot.get_new_miiverse_cookie()
-                post_url = sbot.get_miiverse_last_post(miiverse_cookie)
-                if sbot.is_new_post(post_url) or debug:
-                    post_details = sbot.get_info_from_post(post_url,
-                                                           miiverse_cookie)
-                    if post_details.is_picture_post():
-                        post_details.smashbros_pic =\
-                            sbot.upload_to_imgur(post_details, IMGUR_ALBUM_ID)
-                    retry_on_error = False
-                    sbot.post_to_reddit(post_details, subreddit,
-                                        USERNAME, reddit_password)
-                    if not debug:
-                        sbot.set_last_post(post_url)
-
-                if debug:  # Don't loop in debug
-                    quit()
-
-            except urllib2.HTTPError as e:
-                logging.error("ERROR: HTTPError code " + str(e.code) +
-                              " encountered while making request.")
-                retry_or_die()
-            except urllib2.URLError as e:
-                logging.error("ERROR: URLError: " + str(e.reason))
-                retry_or_die()
-            except Exception as e:
-                logging.error("ERROR: Unknown error: " + str(e))
-                retry_or_die()
-
-            sleep(FREQUENCY)
-
-    except (KeyboardInterrupt):
-        logging.info("Keyboard interrupt detected, shutting down Sakuraibot.")
-        quit()
+    def bot_cycle(self):
+        global retry_on_error
+        retry_on_error = True
+        self.logger.info("Starting the cycle again.")
+        miiverse_cookie = self.get_new_miiverse_cookie()
+        post_url = self.get_miiverse_last_post(miiverse_cookie)
+        if self.is_new_post(post_url) or self.debug:
+            post_details = self.get_info_from_post(post_url,
+                                                   miiverse_cookie)
+            if post_details.is_picture_post():
+                post_details.smashbros_pic = \
+                    self.upload_to_imgur(post_details)
+            retry_on_error = False
+            self.post_to_reddit(post_details)
+            if not self.debug:
+                self.set_last_post(post_url)

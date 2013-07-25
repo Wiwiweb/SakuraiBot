@@ -13,6 +13,8 @@ import sakuraibot
 import urllib2
 import uuid
 import praw
+import logging
+import sys
 from time import sleep
 from datetime import datetime
 from json import loads
@@ -23,7 +25,9 @@ from sys import modules
 
 USERNAME = 'SakuraiBot_test'
 SUBREDDIT = 'SakuraiBot_test'
+IMGUR_ALBUM_ID = 'ugL4N'
 USER_AGENT = "SakuraiBot test suite"
+
 
 REDDIT_PASSWORD_FILENAME = "../res/private/reddit-password.txt"
 LAST_POST_FILENAME = "last-post.txt"
@@ -32,37 +36,48 @@ IMGUR_CLIENT_ID = '45b2e3810d7d550'
 
 REDDIT_PASSWORD = sakuraibot.reddit_password
 
+logging.basicConfig(stream=sys.stdout, level=logging.DEBUG,
+                    format='%(asctime)s: %(message)s')
+
 
 class CodeFormatTests(unittest.TestCase):
 
     def test_pep8_conformance(self):
         pep8style = pep8.StyleGuide(quiet=True)
-        result = pep8style.check_files(['../src/sakuraibot.py', 'tests.py'])
+        result = pep8style.check_files(['../src/sakuraibot.py',
+                                        '../src/__init__.py', 'tests.py'])
         self.assertFalse(result.total_errors, result.messages)
 
     def test_pep257_conformance(self):
-        result = pep257.check_files(['../src/sakuraibot.py', 'tests.py'])
+        result = pep257.check_files(['../src/sakuraibot.py',
+                                     '../src/__init__.py', 'tests.py'])
         self.assertFalse(result)
 
 
 class BasicTests(unittest.TestCase):
 
     def test_get_new_miiverse_cookie(self):
-        self.sbot = sakuraibot.SakuraiBot(LAST_POST_FILENAME,
-                                          EXTRA_COMMENT_FILENAME)
+        self.sbot = sakuraibot.SakuraiBot(USERNAME, SUBREDDIT, IMGUR_ALBUM_ID,
+                                          LAST_POST_FILENAME,
+                                          EXTRA_COMMENT_FILENAME,
+                                          debug=True)
         cookie = self.sbot.get_new_miiverse_cookie()
         self.assertRegexpMatches(cookie, r'^[0-9]{10}[.].{43}$',
                                  "Malformed cookie: " + cookie)
 
     def test_is_new_post_yes(self):
-        self.sbot = sakuraibot.SakuraiBot(LAST_POST_FILENAME,
-                                          EXTRA_COMMENT_FILENAME)
+        self.sbot = sakuraibot.SakuraiBot(USERNAME, SUBREDDIT, IMGUR_ALBUM_ID,
+                                          LAST_POST_FILENAME,
+                                          EXTRA_COMMENT_FILENAME,
+                                          debug=True)
         self.assertTrue(self.
                         sbot.is_new_post('/posts/AYMHAAABAAAYUKk9MS0TYA'))
 
     def test_is_new_post_no(self):
-        self.sbot = sakuraibot.SakuraiBot(LAST_POST_FILENAME,
-                                          EXTRA_COMMENT_FILENAME)
+        self.sbot = sakuraibot.SakuraiBot(USERNAME, SUBREDDIT, IMGUR_ALBUM_ID,
+                                          LAST_POST_FILENAME,
+                                          EXTRA_COMMENT_FILENAME,
+                                          debug=True)
         self.assertFalse(self.
                          sbot.is_new_post('/posts/AYMHAAABAAD4UV51j0kRvw'))
 
@@ -70,8 +85,10 @@ class BasicTests(unittest.TestCase):
         file_before = 'last-post-before.txt'
         file_copy = 'last-post-before-copy.txt'
         copy(file_before, file_copy)
-        self.sbot = sakuraibot.SakuraiBot(file_copy,
-                                          EXTRA_COMMENT_FILENAME)
+        self.sbot = sakuraibot.SakuraiBot(USERNAME, SUBREDDIT, IMGUR_ALBUM_ID,
+                                          file_copy,
+                                          EXTRA_COMMENT_FILENAME,
+                                          debug=True)
         self.sbot.set_last_post('/posts/AYMHAAABAABtUV58VKXjyQ')
         self.assertTrue(cmp(file_copy, LAST_POST_FILENAME))
         remove(file_copy)
@@ -80,8 +97,10 @@ class BasicTests(unittest.TestCase):
 class MiiverseTests(unittest.TestCase):
 
     def setUp(self):
-        self.sbot = sakuraibot.SakuraiBot(LAST_POST_FILENAME,
-                                          EXTRA_COMMENT_FILENAME)
+        self.sbot = sakuraibot.SakuraiBot(USERNAME, SUBREDDIT, IMGUR_ALBUM_ID,
+                                          LAST_POST_FILENAME,
+                                          EXTRA_COMMENT_FILENAME,
+                                          debug=True)
         self.cookie = self.sbot.get_new_miiverse_cookie()
 
     def test_get_miiverse_last_post(self):
@@ -139,18 +158,19 @@ class MiiverseTests(unittest.TestCase):
 class ImgurTests(unittest.TestCase):
 
     def setUp(self):
-        self.sbot = sakuraibot.SakuraiBot(LAST_POST_FILENAME,
-                                          EXTRA_COMMENT_FILENAME)
+        self.sbot = sakuraibot.SakuraiBot(USERNAME, SUBREDDIT, IMGUR_ALBUM_ID,
+                                          LAST_POST_FILENAME,
+                                          EXTRA_COMMENT_FILENAME,
+                                          debug=True)
         self.picture = 'http://i.imgur.com/uQIRrD2.gif'
 
     def test_upload_to_imgur(self):
-        album_id = 'ugL4N'
         unique_text = unicode(uuid.uuid4()) \
             + u' No \u0CA0_\u0CA0 ; Yes \u0CA0\u203F\u0CA0'
         unique_text = unique_text.encode('utf-8')
         post_details = sakuraibot.PostDetails('Pug', unique_text,
                                               self.picture, None, None)
-        picture_url = self.sbot.upload_to_imgur(post_details, album_id)
+        picture_url = self.sbot.upload_to_imgur(post_details)
         picture_id = picture_url[19:-4]
 
         req = urllib2.Request('https://api.imgur.com/3/image/' + picture_id)
@@ -161,20 +181,23 @@ class ImgurTests(unittest.TestCase):
         self.assertEqual(picture_id, id_json)
         self.assertEqual(unique_text, title_json)
 
-        req = urllib2.Request('https://api.imgur.com/3/album/' + album_id)
+        req = urllib2.Request('https://api.imgur.com/3/album/'
+                              + IMGUR_ALBUM_ID)
         req.add_header("Authorization", "Client-ID " + IMGUR_CLIENT_ID)
         json_resp = loads(urllib2.urlopen(req).read())
         album_id_json = json_resp['data']['id']
         picture_id_json = json_resp['data']['images'][-1]['id']
-        self.assertEqual(album_id, album_id_json)
+        self.assertEqual(IMGUR_ALBUM_ID, album_id_json)
         self.assertEqual(picture_id, picture_id_json)
 
 
 class RedditTests(unittest.TestCase):
 
     def setUp(self):
-        self.sbot = sakuraibot.SakuraiBot(LAST_POST_FILENAME,
-                                          EXTRA_COMMENT_FILENAME)
+        self.sbot = sakuraibot.SakuraiBot(USERNAME, SUBREDDIT, IMGUR_ALBUM_ID,
+                                          LAST_POST_FILENAME,
+                                          EXTRA_COMMENT_FILENAME,
+                                          debug=True)
         self.r = praw.Reddit(user_agent=USER_AGENT)
         self.r.login(USERNAME, REDDIT_PASSWORD)
         self.subreddit = self.r.get_subreddit(SUBREDDIT)
@@ -186,8 +209,7 @@ class RedditTests(unittest.TestCase):
         unique_text = unique_text.encode('utf-8')
         post_details = sakuraibot.PostDetails('Pug', unique_text,
                                               None, None, None)
-        submission = self.sbot.post_to_reddit(post_details, SUBREDDIT,
-                                              USERNAME, REDDIT_PASSWORD)
+        submission = self.sbot.post_to_reddit(post_details)
         self.assertEquals(submission,
                           self.subreddit.get_new(limit=1).next())
         self.assertEquals(submission,
@@ -208,8 +230,7 @@ class RedditTests(unittest.TestCase):
         unique_text = unique_text.encode('utf-8')
         post_details = sakuraibot.PostDetails('Pug', unique_text,
                                               None, None, None)
-        submission = self.sbot.post_to_reddit(post_details, SUBREDDIT,
-                                              USERNAME, REDDIT_PASSWORD)
+        submission = self.sbot.post_to_reddit(post_details)
         self.assertEquals(submission,
                           self.subreddit.get_new(limit=1).next())
         self.assertEquals(submission,
@@ -228,8 +249,7 @@ class RedditTests(unittest.TestCase):
         unique_text = unique_text.encode('utf-8')
         post_details = sakuraibot.PostDetails('Pug', unique_text,
                                               picture, None, picture)
-        submission = self.sbot.post_to_reddit(post_details, SUBREDDIT,
-                                              USERNAME, REDDIT_PASSWORD)
+        submission = self.sbot.post_to_reddit(post_details)
         self.assertEquals(submission,
                           self.subreddit.get_new(limit=1).next())
         self.assertEquals(submission,
@@ -252,8 +272,7 @@ class RedditTests(unittest.TestCase):
         unique_text = unique_text.encode('utf-8')
         post_details = sakuraibot.PostDetails('Pug', unique_text,
                                               picture, None, picture)
-        submission = self.sbot.post_to_reddit(post_details, SUBREDDIT,
-                                              USERNAME, REDDIT_PASSWORD)
+        submission = self.sbot.post_to_reddit(post_details)
         self.assertEquals(submission,
                           self.subreddit.get_new(limit=1).next())
         self.assertEquals(submission,
@@ -275,8 +294,7 @@ class RedditTests(unittest.TestCase):
         unique_text = unique_text.encode('utf-8')
         post_details = sakuraibot.PostDetails('Pug', unique_text,
                                               None, video, None)
-        submission = self.sbot.post_to_reddit(post_details, SUBREDDIT,
-                                              USERNAME, REDDIT_PASSWORD)
+        submission = self.sbot.post_to_reddit(post_details)
         self.assertEquals(submission,
                           self.subreddit.get_new(limit=1).next())
         self.assertEquals(submission,
@@ -286,6 +304,19 @@ class RedditTests(unittest.TestCase):
         self.assertEquals(title, submission.title.encode('utf-8'))
         self.assertEquals(video, submission.url)
         #TODO test comment
+
+
+class CompleteTests(unittest.TestCase):
+
+    def setUp(self):
+        self.sbot = sakuraibot.SakuraiBot(USERNAME, SUBREDDIT, IMGUR_ALBUM_ID,
+                                          LAST_POST_FILENAME,
+                                          EXTRA_COMMENT_FILENAME,
+                                          debug=True)
+
+    def test_bot_cycle(self):
+        self.sbot.bot_cycle()
+
 
 if __name__ == '__main__':
     unittest.main()

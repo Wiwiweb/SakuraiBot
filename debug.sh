@@ -3,7 +3,7 @@
 # Pretty much copy-pasted from reddit-xkcdbot, with slight changes
 
 # Kill if started
-export SAKURAIPID=`ps aux | grep 'sakuraibot.py' | grep -v grep | awk '{print($2)}'`
+export SAKURAIPID=`ps aux | grep '__init__.py' | grep -v grep | awk '{print($2)}'`
 
 if [ -n "$SAKURAIPID" ]; then
   echo "Killing old process "$SAKURAIPID"."
@@ -17,4 +17,4 @@ git pull
 # Start
 echo "Starting"
 cd src
-python sakuraibot.py --debug
+python __init__.py --debug
