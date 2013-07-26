@@ -220,32 +220,55 @@ class SakuraiBot:
 
     def upload_to_imgur(self, post_details):
         """Upload the picture to imgur and returns the link."""
+        retries = 5
 
-        #TODO retry on HTTPError
         # Request new access token
-        parameters = {'refresh_token': imgur_token,
-                      'client_id':     IMGUR_CLIENT_ID,
-                      'client_secret': imgur_secret,
-                      'grant_type':    'refresh_token'}
-        self.logger.debug("Token request parameters: " + str(parameters))
-        data = urlencode(parameters)
-        req = urllib2.Request(IMGUR_REFRESH_URL, data)
-        json_resp = loads(urllib2.urlopen(req).read())
-        imgur_access_token = json_resp['access_token']
+        while True:
+            try:
+                parameters = {'refresh_token': imgur_token,
+                              'client_id':     IMGUR_CLIENT_ID,
+                              'client_secret': imgur_secret,
+                              'grant_type':    'refresh_token'}
+                self.logger.debug("Token request parameters: " + str(parameters))
+                data = urlencode(parameters)
+                req = urllib2.Request(IMGUR_REFRESH_URL, data)
+                json_resp = loads(urllib2.urlopen(req).read())
+                imgur_access_token = json_resp['access_token']
+                break
+            except urllib2.HTTPError as e:
+                retries -= 1
+                if retries == 0:
+                    raise e
+                else:
+                    self.logger.error("ERROR: HTTPError: " + str(e.reason) +
+                                      ". Retrying.")
+                    continue
 
         # Upload picture
-        parameters = {'image':    SMASH_DAILY_PIC,
-                      'title':    post_details.text,
-                      'album_id': self.imgur_album,
-                      'type':     'URL'}
-        self.logger.debug("Upload request parameters: " + str(parameters))
-        data = urlencode(parameters)
-        req = urllib2.Request(IMGUR_UPLOAD_URL, data)
-        req.add_header('Authorization', 'Bearer ' + imgur_access_token)
-        json_resp = loads(urllib2.urlopen(req).read())
+        while True:
+            try:
+                parameters = {'image':    SMASH_DAILY_PIC,
+                              'title':    post_details.text,
+                              'album_id': self.imgur_album,
+                              'type':     'URL'}
+                self.logger.debug("Upload request parameters: " + str(parameters))
+                data = urlencode(parameters)
+                req = urllib2.Request(IMGUR_UPLOAD_URL, data)
+                req.add_header('Authorization', 'Bearer ' + imgur_access_token)
+                json_resp = loads(urllib2.urlopen(req).read())
 
-        picture_url = json_resp['data']['link']
-        self.logger.info("Uploaded to imgur! " + picture_url)
+                picture_url = json_resp['data']['link']
+                self.logger.info("Uploaded to imgur! " + picture_url)
+                break
+            except urllib2.HTTPError as e:
+                retries -= 1
+                if retries == 0:
+                    raise e
+                else:
+                    self.logger.error("ERROR: HTTPError: " + str(e.reason) +
+                                      ". Retrying.")
+                    continue
+
         return picture_url
 
     def get_random_babble(self):
