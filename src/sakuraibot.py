@@ -12,6 +12,7 @@ https://github.com/trisweb/reddit-xkcdbot
 import praw
 import urllib2
 import cookielib
+import hashlib
 from logging import getLogger
 from urllib import urlencode
 from bs4 import BeautifulSoup
@@ -26,6 +27,7 @@ REDDIT_PASSWORD_FILENAME = "../res/private/reddit-password.txt"
 MIIVERSE_PASSWORD_FILENAME = "../res/private/miiverse-password.txt"
 IMGUR_REFRESH_TOKEN_FILENAME = "../res/private/imgur-refresh-token.txt"
 IMGUR_CLIENT_SECRET_FILENAME = "../res/private/imgur-client-secret.txt"
+LAST_PICTURE_MD5_FILENAME = "../res/last-picture-md5.txt"
 SAKURAI_BABBLES_FILENAME = "../res/sakurai-babbles.txt"
 
 IMGUR_CLIENT_ID = '45b2e3810d7d550'
@@ -84,16 +86,18 @@ class PostDetails:
 
 
 class SakuraiBot:
-    def __init__(self, username, subreddit, imgur_album, last_post_filename,
-                 extra_comment_filename, logger=getLogger(),
-                 miiverse_main=False, debug=False):
+    def __init__(self, username, subreddit, imgur_album,
+                 last_post_filename,
+                 extra_comment_filename,
+                 picture_md5_filename,
+                 logger=getLogger(), debug=False):
         self.username = username
         self.subreddit = subreddit
         self.imgur_album = imgur_album
         self.last_post_filename = last_post_filename
         self.extra_comment_filename = extra_comment_filename
+        self.picture_md5_filename = picture_md5_filename
         self.logger = logger
-        self.miiverse_main = miiverse_main
         self.debug = debug
 
     def get_new_miiverse_cookie(self):
@@ -155,6 +159,30 @@ class SakuraiBot:
         self.logger.info("Post is new!")
         return True
 
+    def get_current_pic_md5(self):
+        """Get the md5 is the current smashbros.com pic."""
+        response = urllib2.urlopen(SMASH_DAILY_PIC)
+        pic = response.read()
+        md5 = hashlib.md5()
+        md5.update(pic)
+        current_md5 = md5.hexdigest()
+        self.logger.debug("Current pic md5: " + current_md5)
+        return current_md5
+
+    def is_website_new(self, current_md5):
+        """Compare the smashbros pic md5 to the last md5 posted."""
+        f = open(self.picture_md5_filename, 'a+')
+        last_md5 = f.read().strip()
+        f.close()
+        self.logger.debug("Last pic md5: " + last_md5)
+
+        if current_md5 == last_md5:
+            self.logger.info("Same website picture as before.")
+            return False
+        else:
+            self.logger.info("Website picture has changed!")
+            return True
+
     def get_info_from_post(self, post_url, miiverse_cookie):
         """Fetch author, text and picture URL from the post."""
         req = urllib2.Request(MIIVERSE_URL + post_url)
@@ -193,11 +221,13 @@ class SakuraiBot:
     def upload_to_imgur(self, post_details):
         """Upload the picture to imgur and returns the link."""
 
+        #TODO retry on HTTPError
         # Request new access token
         parameters = {'refresh_token': imgur_token,
                       'client_id':     IMGUR_CLIENT_ID,
                       'client_secret': imgur_secret,
                       'grant_type':    'refresh_token'}
+        self.logger.debug("Token request parameters: " + str(parameters))
         data = urlencode(parameters)
         req = urllib2.Request(IMGUR_REFRESH_URL, data)
         json_resp = loads(urllib2.urlopen(req).read())
@@ -208,6 +238,7 @@ class SakuraiBot:
                       'title':    post_details.text,
                       'album_id': self.imgur_album,
                       'type':     'URL'}
+        self.logger.debug("Upload request parameters: " + str(parameters))
         data = urlencode(parameters)
         req = urllib2.Request(IMGUR_UPLOAD_URL, data)
         req.add_header('Authorization', 'Bearer ' + imgur_access_token)
@@ -246,10 +277,7 @@ class SakuraiBot:
             if post_details.video is None:
                 # Picture post
                 post_type = "picture"
-                if self.miiverse_main:
-                    url = post_details.picture
-                else:
-                    url = post_details.smashbros_pic
+                url = post_details.smashbros_pic
             else:
                 # Video post
                 post_type = "video"
@@ -330,26 +358,38 @@ class SakuraiBot:
         return r.get_submission(submission_id=submission.id, comment_limit=1)
 
     def set_last_post(self, post_url):
-        """Add the last post to the top of the remembered posts file."""
-        postf = open(self.last_post_filename, "r+")
+        """Add the post URL to the top of the last-post.txt file."""
+        postf = open(self.last_post_filename, 'r+')
         old = postf.read()
         postf.seek(0)
         postf.write(post_url + "\n" + old)
         postf.close()
         self.logger.info("New post remembered.")
 
+    def update_md5(self, current_md5):
+        """Update the md5 in the last-picture-md5.txt file."""
+        postf = open(self.picture_md5_filename, 'w')
+        postf.write(current_md5)
+        postf.close()
+        self.logger.info("Md5 updated.")
+
     def bot_cycle(self):
         global retry_on_error
         retry_on_error = True
         miiverse_cookie = self.get_new_miiverse_cookie()
         post_url = self.get_miiverse_last_post(miiverse_cookie)
+
         if self.is_new_post(post_url) or self.debug:
-            post_details = self.get_info_from_post(post_url,
-                                                   miiverse_cookie)
-            if post_details.is_picture_post():
-                post_details.smashbros_pic = \
-                    self.upload_to_imgur(post_details)
-            retry_on_error = False
-            self.post_to_reddit(post_details)
-            if not self.debug:
-                self.set_last_post(post_url)
+            current_md5 = self.get_current_pic_md5()
+            if self.is_website_new(current_md5) or self.debug:
+
+                post_details = self.get_info_from_post(post_url,
+                                                       miiverse_cookie)
+                if post_details.is_picture_post():
+                    post_details.smashbros_pic = \
+                        self.upload_to_imgur(post_details)
+                retry_on_error = False
+                self.post_to_reddit(post_details)
+                if not self.debug:
+                    self.set_last_post(post_url)
+                    self.update_md5(current_md5)

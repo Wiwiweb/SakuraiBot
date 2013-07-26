@@ -29,11 +29,11 @@ IMGUR_ALBUM_ID = 'ugL4N'
 USER_AGENT = "SakuraiBot test suite"
 
 
-REDDIT_PASSWORD_FILENAME = "../res/private/reddit-password.txt"
-LAST_POST_FILENAME = "last-post.txt"
-EXTRA_COMMENT_FILENAME = "extra-comment.txt"
+REDDIT_PASSWORD_FILENAME = '../res/private/reddit-password.txt'
+LAST_POST_FILENAME = 'last-post.txt'
+EXTRA_COMMENT_FILENAME = 'extra-comment.txt'
+PICTURE_MD5_FILENAME = 'last-picture-md5.txt'
 IMGUR_CLIENT_ID = '45b2e3810d7d550'
-
 REDDIT_PASSWORD = sakuraibot.reddit_password
 
 logging.basicConfig(stream=sys.stdout, level=logging.DEBUG,
@@ -56,41 +56,56 @@ class CodeFormatTests(unittest.TestCase):
 
 class BasicTests(unittest.TestCase):
 
-    def test_get_new_miiverse_cookie(self):
+    def setUp(self):
         self.sbot = sakuraibot.SakuraiBot(USERNAME, SUBREDDIT, IMGUR_ALBUM_ID,
                                           LAST_POST_FILENAME,
                                           EXTRA_COMMENT_FILENAME,
+                                          PICTURE_MD5_FILENAME,
                                           debug=True)
+
+    def test_get_new_miiverse_cookie(self):
         cookie = self.sbot.get_new_miiverse_cookie()
         self.assertRegexpMatches(cookie, r'^[0-9]{10}[.].{43}$',
                                  "Malformed cookie: " + cookie)
 
     def test_is_new_post_yes(self):
-        self.sbot = sakuraibot.SakuraiBot(USERNAME, SUBREDDIT, IMGUR_ALBUM_ID,
-                                          LAST_POST_FILENAME,
-                                          EXTRA_COMMENT_FILENAME,
-                                          debug=True)
         self.assertTrue(self.
                         sbot.is_new_post('/posts/AYMHAAABAAAYUKk9MS0TYA'))
 
     def test_is_new_post_no(self):
-        self.sbot = sakuraibot.SakuraiBot(USERNAME, SUBREDDIT, IMGUR_ALBUM_ID,
-                                          LAST_POST_FILENAME,
-                                          EXTRA_COMMENT_FILENAME,
-                                          debug=True)
         self.assertFalse(self.
                          sbot.is_new_post('/posts/AYMHAAABAAD4UV51j0kRvw'))
+
+    def test_get_current_pic_md5(self):
+        md5 = self.sbot.get_current_pic_md5()
+        self.assertRegexpMatches(md5, r'([a-fA-F\d]{32})',
+                                 "Malformed md5: " + md5)
+
+    def test_is_website_new_yes(self):
+        md5 = '3c0cb77a45b1215d9d4ef6cda0d89959'
+        self.assertTrue(self.sbot.is_website_new(md5))
+
+    def test_is_website_new_no(self):
+        md5 = 'ea29d1e00c26ccd3088263f5340be961'
+        self.assertFalse(self.sbot.is_website_new(md5))
 
     def test_set_last_post(self):
         file_before = 'last-post-before.txt'
         file_copy = 'last-post-before-copy.txt'
         copy(file_before, file_copy)
-        self.sbot = sakuraibot.SakuraiBot(USERNAME, SUBREDDIT, IMGUR_ALBUM_ID,
-                                          file_copy,
-                                          EXTRA_COMMENT_FILENAME,
-                                          debug=True)
+        self.sbot.last_post_filename = file_copy
         self.sbot.set_last_post('/posts/AYMHAAABAABtUV58VKXjyQ')
         self.assertTrue(cmp(file_copy, LAST_POST_FILENAME))
+        remove(file_copy)
+
+    def test_update_md5(self):
+        md5 = 'ea29d1e00c26ccd3088263f5340be961'
+        file_before = 'last-picture-md5-before.txt'
+        file_copy = 'last-picture-md5-before-copy.txt'
+        copy(file_before, file_copy)
+        self.sbot.picture_md5_filename = file_copy
+        self.sbot.update_md5(md5)
+        self.assertTrue(cmp(file_copy, PICTURE_MD5_FILENAME))
         remove(file_copy)
 
 
@@ -100,6 +115,7 @@ class MiiverseTests(unittest.TestCase):
         self.sbot = sakuraibot.SakuraiBot(USERNAME, SUBREDDIT, IMGUR_ALBUM_ID,
                                           LAST_POST_FILENAME,
                                           EXTRA_COMMENT_FILENAME,
+                                          PICTURE_MD5_FILENAME,
                                           debug=True)
         self.cookie = self.sbot.get_new_miiverse_cookie()
 
@@ -161,6 +177,7 @@ class ImgurTests(unittest.TestCase):
         self.sbot = sakuraibot.SakuraiBot(USERNAME, SUBREDDIT, IMGUR_ALBUM_ID,
                                           LAST_POST_FILENAME,
                                           EXTRA_COMMENT_FILENAME,
+                                          PICTURE_MD5_FILENAME,
                                           debug=True)
         self.picture = 'http://i.imgur.com/uQIRrD2.gif'
 
@@ -197,6 +214,7 @@ class RedditTests(unittest.TestCase):
         self.sbot = sakuraibot.SakuraiBot(USERNAME, SUBREDDIT, IMGUR_ALBUM_ID,
                                           LAST_POST_FILENAME,
                                           EXTRA_COMMENT_FILENAME,
+                                          PICTURE_MD5_FILENAME,
                                           debug=True)
         self.r = praw.Reddit(user_agent=USER_AGENT)
         self.r.login(USERNAME, REDDIT_PASSWORD)
@@ -312,10 +330,12 @@ class CompleteTests(unittest.TestCase):
         self.sbot = sakuraibot.SakuraiBot(USERNAME, SUBREDDIT, IMGUR_ALBUM_ID,
                                           LAST_POST_FILENAME,
                                           EXTRA_COMMENT_FILENAME,
+                                          PICTURE_MD5_FILENAME,
                                           debug=True)
 
     def test_bot_cycle(self):
         self.sbot.bot_cycle()
+        #TODO: asserts
 
 
 if __name__ == '__main__':
