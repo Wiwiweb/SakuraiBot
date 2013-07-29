@@ -19,6 +19,7 @@ FREQUENCY = 300
 LOG_FILE = "../logs/sakuraibot.log"
 LAST_POST_FILENAME = "../res/last-post.txt"
 EXTRA_COMMENT_FILENAME = "../res/extra-comment.txt"
+PICTURE_MD5_FILENAME = "../res/last-picture-md5.txt"
 
 # -------------------------------------------------
 # Main loop
@@ -68,6 +69,7 @@ if __name__ == '__main__':
     logging.info("--- Starting sakuraibot ---")
     sbot = SakuraiBot(username, subreddit, imgur_album_id,
                       LAST_POST_FILENAME, EXTRA_COMMENT_FILENAME,
+                      PICTURE_MD5_FILENAME,
                       debug=debug)
     try:
         while True:
