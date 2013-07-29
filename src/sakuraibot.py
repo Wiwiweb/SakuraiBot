@@ -343,7 +343,8 @@ class SakuraiBot:
                       + self.imgur_album + ")")
         f = open(self.extra_comment_filename, 'a+')
         extra_comment = f.read().strip()
-        f.truncate(0)  # Erase file
+        if not self.debug:
+            f.truncate(0)  # Erase file
         f.close()
 
         comment = comment.format(full_text=full_text,
