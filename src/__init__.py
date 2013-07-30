@@ -11,6 +11,7 @@ from sakuraibot import SakuraiBot
 import logging
 import sys
 import urllib2
+import smtplib
 from logging.handlers import TimedRotatingFileHandler
 from time import sleep
 
@@ -20,6 +21,15 @@ LOG_FILE = "../logs/sakuraibot.log"
 LAST_POST_FILENAME = "../res/last-post.txt"
 EXTRA_COMMENT_FILENAME = "../res/extra-comment.txt"
 PICTURE_MD5_FILENAME = "../res/last-picture-md5.txt"
+
+MAIL_ADDRESS = "sakuraibotalert@gmail.com"
+SENDER_MAIL_ADDRESS = "sakuraibotalert@gmail.com"
+SMTP_HOST = "smtp.gmail.com:587"
+MAIL_PASSWORD_FILENAME = "../res/private/mail-password.txt"
+
+f = open(MAIL_PASSWORD_FILENAME, 'r')
+mail_password = f.read().strip()
+f.close()
 
 # -------------------------------------------------
 # Main loop
@@ -57,10 +67,28 @@ else:
     miiverse_main = False
     logging.info("Main pic: smashbros.com")
 
+def send_alert_mail():
+    message = "From: Script Alert: SakuraiBot <"+MAIL_ADDRESS+">\n" \
+              "Subject: SakuraiBot stopped unexpectedly!\n\n"
+    f = open(LOG_FILE, 'r')
+    log_content = f.read()
+    f.close()
+    message += log_content
+    try:
+        smtp = smtplib.SMTP(SMTP_HOST)
+        smtp.starttls()
+        logging.debug(MAIL_ADDRESS)
+        logging.debug(mail_password)
+        smtp.login(MAIL_ADDRESS, mail_password)
+        smtp.sendmail(MAIL_ADDRESS, MAIL_ADDRESS, message)
+        logging.info("Alert email sent.")
+    except smtplib.SMTPException as e:
+        logging.error("ERROR: Couldn't send alert email: " + str(e))
 
 def retry_or_die():
     if not retry_on_error:
         logging.error("ERROR: Shutting down SakuraiBot.")
+        send_alert_mail()
         quit()
     else:
         logging.error("ERROR: Sleeping another cycle and retrying.")
