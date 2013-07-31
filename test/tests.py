@@ -135,6 +135,7 @@ class MiiverseTests(unittest.TestCase):
         info = self.sbot.get_info_from_post(url, self.cookie)
         self.assertTrue(info.is_text_post())
         self.assertEqual(info.author, 'Sakurai')
+        self.assertTrue(isinstance(info.text, str)) # Not unicode
         self.assertEqual(info.text, text)
         self.assertIsNone(info.picture)
         self.assertIsNone(info.video)
@@ -149,6 +150,7 @@ class MiiverseTests(unittest.TestCase):
         info = self.sbot.get_info_from_post(url, self.cookie)
         self.assertTrue(info.is_picture_post())
         self.assertEqual(info.author, 'Sakurai')
+        self.assertTrue(isinstance(info.text, str)) # Not unicode
         self.assertEqual(info.text, text)
         self.assertEqual(info.picture, picture)
         self.assertIsNone(info.video)
@@ -165,6 +167,7 @@ class MiiverseTests(unittest.TestCase):
         info = self.sbot.get_info_from_post(url, self.cookie)
         self.assertTrue(info.is_video_post())
         self.assertEqual(info.author, 'Sakurai')
+        self.assertTrue(isinstance(info.text, str)) # Not unicode
         self.assertEqual(info.text, text)
         self.assertIsNone(info.picture)
         self.assertEqual(info.video, video)

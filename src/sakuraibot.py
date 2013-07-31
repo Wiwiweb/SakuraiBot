@@ -195,6 +195,7 @@ class SakuraiBot:
 
         text = soup.find('p', {'class': 'post-content-text'}) \
             .get_text().strip()
+        text = text.encode('utf-8')
         self.logger.info("Post text: " + text)
 
         screenshot_container = soup.find('div',
