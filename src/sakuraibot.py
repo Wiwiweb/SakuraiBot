@@ -19,6 +19,7 @@ from bs4 import BeautifulSoup
 from datetime import datetime
 from json import loads
 from random import randint
+from time import sleep
 
 import sys
 
@@ -45,6 +46,9 @@ IMGUR_UPLOAD_URL = "https://api.imgur.com/3/image"
 IMGUR_REFRESH_URL = "https://api.imgur.com/oauth2/token"
 SMASH_DAILY_PIC = "http://www.smashbros.com/update/images/daily.jpg"
 NINTENDO_LOGIN_PAGE = "https://id.nintendo.net/oauth/authorize"
+
+REDDIT_TITLE_LIMIT = 300
+IMGUR_TITLE_LIMIT = 128
 
 f = open(REDDIT_PASSWORD_FILENAME, 'r')
 reddit_password = f.read().strip()
@@ -254,10 +258,20 @@ class SakuraiBot:
         # Upload picture
         while True:
             try:
-                parameters = {'image':    SMASH_DAILY_PIC,
-                              'title':    post_details.text,
-                              'album_id': self.imgur_album,
-                              'type':     'URL'}
+                title = post_details.text
+                description = ''
+                if len(title.decode('utf-8')) > IMGUR_TITLE_LIMIT:
+                    too_long = ' [...]'
+                    allowed_text_length = IMGUR_TITLE_LIMIT - len(too_long)
+                    while len(title.decode('utf-8')) > allowed_text_length:
+                        title = title.rsplit(' ', 1)[0]  # Remove last word
+                    title += too_long
+                    description = post_details.text
+                parameters = {'image':       SMASH_DAILY_PIC,
+                              'title':       title,
+                              'album_id':    self.imgur_album,
+                              'description': description,
+                              'type':        'URL'}
                 self.logger.debug("Upload request parameters: "
                                   + str(parameters))
                 data = urlencode(parameters)
@@ -317,14 +331,25 @@ class SakuraiBot:
 
         text = '"' + post_details.text + '"'
         title = title_format.format(type=post_type, text=text, extra=extra)
-        if len(title) > 300:
+        self.logger.debug("Title: " + title)
+        self.logger.debug(len(title))
+        self.logger.debug(len(title.decode('utf-8')))
+        if len(title.decode('utf-8')) > REDDIT_TITLE_LIMIT:
             if text_post:
                 too_long_type = "post"
             else:
                 too_long_type = "comment"
-            too_long = "(Text too long! See {})".format(too_long_type)
+            too_long = ' [...]" (Text too long! See {})'.format(too_long_type)
+
+            allowed_text_length = \
+                len(text.decode('utf-8')) \
+                - (len(title.decode('utf-8')) - REDDIT_TITLE_LIMIT) \
+                - len(too_long)
+            while len(text.decode('utf-8')) > allowed_text_length:
+                text = text.rsplit(' ', 1)[0]  # Remove last word
+            text += too_long
             title = title_format.format(type=post_type,
-                                        text=too_long,
+                                        text=text,
                                         extra=extra)
             text_too_long = True
 

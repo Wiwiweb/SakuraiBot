@@ -40,6 +40,15 @@ logging.basicConfig(stream=sys.stdout, level=logging.DEBUG,
                     format='%(asctime)s: %(message)s')
 
 
+unicode_text = u' No \u0CA0_\u0CA0 ;' \
+               u' Yes \u0CA0\u203F\u0CA0 \u2026'
+long_text = \
+    u'. By the way this text is very very very very very very very ' \
+    u'very very very very very very very very very very very very ' \
+    u'very very very very very very very very very very very very ' \
+    u'very very very very very very very very very very very long.'
+
+
 class CodeFormatTests(unittest.TestCase):
 
     def test_pep8_conformance(self):
@@ -188,8 +197,7 @@ class ImgurTests(unittest.TestCase):
         self.picture = 'http://i.imgur.com/uQIRrD2.gif'
 
     def test_upload_to_imgur(self):
-        unique_text = unicode(uuid.uuid4()) \
-            + u' No \u0CA0_\u0CA0 ; Yes \u0CA0\u203F\u0CA0 \u2026'
+        unique_text = unicode(uuid.uuid4()) + unicode_text
         unique_text = unique_text.encode('utf-8')
         post_details = sakuraibot.PostDetails('Pug', unique_text,
                                               self.picture, None, None)
@@ -199,19 +207,43 @@ class ImgurTests(unittest.TestCase):
         req = urllib2.Request('https://api.imgur.com/3/image/' + picture_id)
         req.add_header("Authorization", "Client-ID " + IMGUR_CLIENT_ID)
         json_resp = loads(urllib2.urlopen(req).read())
+        logging.debug("Image Json Response: " + str(json_resp))
         id_json = json_resp['data']['id']
-        title_json = json_resp['data']['title'].encode('utf-8')
         self.assertEqual(picture_id, id_json)
+        title_json = json_resp['data']['title'].encode('utf-8')
         self.assertEqual(unique_text, title_json)
+        description_json = json_resp['data']['description']
+        self.assertIsNone(description_json)
 
         req = urllib2.Request('https://api.imgur.com/3/album/'
                               + IMGUR_ALBUM_ID)
         req.add_header("Authorization", "Client-ID " + IMGUR_CLIENT_ID)
         json_resp = loads(urllib2.urlopen(req).read())
+        logging.debug("Album Json Response: " + str(json_resp))
         album_id_json = json_resp['data']['id']
-        picture_id_json = json_resp['data']['images'][-1]['id']
         self.assertEqual(IMGUR_ALBUM_ID, album_id_json)
+        picture_id_json = json_resp['data']['images'][-1]['id']
         self.assertEqual(picture_id, picture_id_json)
+
+    def test_upload_to_imgur_long(self):
+        unique_text = unicode(uuid.uuid4()) + unicode_text + long_text
+        unique_text = unique_text.encode('utf-8')
+        post_details = sakuraibot.PostDetails('Pug', unique_text,
+                                              self.picture, None, None)
+        picture_url = self.sbot.upload_to_imgur(post_details)
+        picture_id = picture_url[19:-4]
+
+        req = urllib2.Request('https://api.imgur.com/3/image/' + picture_id)
+        req.add_header("Authorization", "Client-ID " + IMGUR_CLIENT_ID)
+        json_resp = loads(urllib2.urlopen(req).read())
+        logging.debug("Image Json Response: " + str(json_resp))
+        id_json = json_resp['data']['id']
+        self.assertEqual(picture_id, id_json)
+        title_json = json_resp['data']['title'].encode('utf-8')
+        alt_title = unique_text.rsplit(' ', 35)[0] + ' [...]'
+        self.assertEqual(alt_title, title_json)
+        description_json = json_resp['data']['description'].encode('utf-8')
+        self.assertEqual(unique_text, description_json)
 
 
 class RedditTests(unittest.TestCase):
@@ -227,17 +259,9 @@ class RedditTests(unittest.TestCase):
         self.subreddit = self.r.get_subreddit(SUBREDDIT)
         self.r.config.cache_timeout = 0
 
-        self.unicode_text = u' No \u0CA0_\u0CA0 ;' \
-                            u' Yes \u0CA0\u203F\u0CA0 \u2026'
-        self.long_text = \
-            u'. By the way this text is very very very very very very very ' \
-            u'very very very very very very very very very very very very ' \
-            u'very very very very very very very very very very very very ' \
-            u'very very very very very very very very very very very long.'
-
     def test_post_to_reddit_text(self):
         unique_text = u'Text test: ' + unicode(uuid.uuid4()) +\
-                      self.unicode_text
+                      unicode_text
         unique_text = unique_text.encode('utf-8')
         post_details = sakuraibot.PostDetails('Pug', unique_text,
                                               None, None, None)
@@ -254,7 +278,7 @@ class RedditTests(unittest.TestCase):
 
     def test_post_to_reddit_text_long(self):
         unique_text = u'Long text test: ' + unicode(uuid.uuid4()) + \
-            self.unicode_text + self.long_text
+            unicode_text + long_text
         unique_text = unique_text.encode('utf-8')
         post_details = sakuraibot.PostDetails('Pug', unique_text,
                                               None, None, None)
@@ -264,8 +288,9 @@ class RedditTests(unittest.TestCase):
         self.assertEquals(submission,
                           self.r.user.get_submitted(limit=1).next())
         date = datetime.now().strftime('%y-%m-%d')
-        title = 'New Pug post! (' + date + \
-                ') (Text too long! See post) (No picture)'
+        title = 'New Pug post! (' + date + ') "' + \
+                unique_text.rsplit(' ', 17)[0] + \
+                ' [...]" (Text too long! See post) (No picture)'
         self.assertEquals(title, submission.title.encode('utf-8'))
         #TODO test comment
 
@@ -273,7 +298,7 @@ class RedditTests(unittest.TestCase):
         unique = uuid.uuid4()
         picture = 'http://i.imgur.com/uQIRrD2.gif?unique=' + str(unique)
         unique_text = u'Picture test: ' + unicode(unique) + \
-                      self.unicode_text
+                      unicode_text
         unique_text = unique_text.encode('utf-8')
         post_details = sakuraibot.PostDetails('Pug', unique_text,
                                               picture, None, picture)
@@ -292,7 +317,7 @@ class RedditTests(unittest.TestCase):
         unique = uuid.uuid4()
         picture = 'http://i.imgur.com/uQIRrD2.gif?unique=' + str(unique)
         unique_text = u'Long Picture test: ' + unicode(unique) + \
-                      self.unicode_text + self.long_text
+                      unicode_text + long_text
         unique_text = unique_text.encode('utf-8')
         post_details = sakuraibot.PostDetails('Pug', unique_text,
                                               picture, None, picture)
@@ -302,8 +327,9 @@ class RedditTests(unittest.TestCase):
         self.assertEquals(submission,
                           self.r.user.get_submitted(limit=1).next())
         date = datetime.now().strftime('%y-%m-%d')
-        title = 'New Pug picture! (' + date + \
-                ') (Text too long! See comment)'
+        title = 'New Pug picture! (' + date + ') "' + \
+                unique_text.rsplit(' ', 16)[0] + \
+                ' [...]" (Text too long! See comment)'
         self.assertEquals(title, submission.title.encode('utf-8'))
         self.assertEquals(picture, submission.url)
         comment = submission.comments[0].body.encode('utf-8')
@@ -314,7 +340,7 @@ class RedditTests(unittest.TestCase):
         video = 'http://www.youtube.com/watch?v=7anpvGqQxwI?unique='\
                 + str(unique)
         unique_text = u'Video test: ' + unicode(unique) + \
-                      self.unicode_text
+                      unicode_text
         unique_text = unique_text.encode('utf-8')
         post_details = sakuraibot.PostDetails('Pug', unique_text,
                                               None, video, None)
