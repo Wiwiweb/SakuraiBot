@@ -20,6 +20,8 @@ from datetime import datetime
 from json import loads
 from random import randint
 
+import sys
+
 VERSION = "1.5"
 USER_AGENT = "SakuraiBot v" + VERSION + " by /u/Wiwiweb for /r/smashbros"
 
@@ -191,11 +193,13 @@ class SakuraiBot:
         soup = BeautifulSoup(page)
 
         author = soup.find('p', {'class': 'user-name'}).find('a').get_text()
+        author = author.encode('utf-8')
         self.logger.info("Post author: " + author)
 
         text = soup.find('p', {'class': 'post-content-text'}) \
             .get_text().strip()
         text = text.encode('utf-8')
+        self.logger.debug(type(text))
         self.logger.info("Post text: " + text)
 
         screenshot_container = soup.find('div',
@@ -230,7 +234,8 @@ class SakuraiBot:
                               'client_id':     IMGUR_CLIENT_ID,
                               'client_secret': imgur_secret,
                               'grant_type':    'refresh_token'}
-                self.logger.debug("Token request parameters: " + str(parameters))
+                self.logger.debug("Token request parameters: "
+                                  + str(parameters))
                 data = urlencode(parameters)
                 req = urllib2.Request(IMGUR_REFRESH_URL, data)
                 json_resp = loads(urllib2.urlopen(req).read())
@@ -243,6 +248,7 @@ class SakuraiBot:
                 else:
                     self.logger.error("ERROR: HTTPError: " + str(e.reason) +
                                       ". Retrying.")
+                    sleep(2)
                     continue
 
         # Upload picture
@@ -252,7 +258,8 @@ class SakuraiBot:
                               'title':    post_details.text,
                               'album_id': self.imgur_album,
                               'type':     'URL'}
-                self.logger.debug("Upload request parameters: " + str(parameters))
+                self.logger.debug("Upload request parameters: "
+                                  + str(parameters))
                 data = urlencode(parameters)
                 req = urllib2.Request(IMGUR_UPLOAD_URL, data)
                 req.add_header('Authorization', 'Bearer ' + imgur_access_token)
@@ -268,6 +275,7 @@ class SakuraiBot:
                 else:
                     self.logger.error("ERROR: HTTPError: " + str(e.reason) +
                                       ". Retrying.")
+                    sleep(2)
                     continue
 
         return picture_url
@@ -399,8 +407,7 @@ class SakuraiBot:
         self.logger.info("Md5 updated.")
 
     def bot_cycle(self):
-        global retry_on_error
-        retry_on_error = True
+        global global_retries
         miiverse_cookie = self.get_new_miiverse_cookie()
         post_url = self.get_miiverse_last_post(miiverse_cookie)
 
@@ -413,7 +420,7 @@ class SakuraiBot:
                 if post_details.is_picture_post():
                     post_details.smashbros_pic = \
                         self.upload_to_imgur(post_details)
-                retry_on_error = False
+                global_retries = 0
                 self.post_to_reddit(post_details)
                 if not self.debug:
                     self.set_last_post(post_url)

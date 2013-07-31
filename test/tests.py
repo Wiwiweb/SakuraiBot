@@ -135,7 +135,8 @@ class MiiverseTests(unittest.TestCase):
         info = self.sbot.get_info_from_post(url, self.cookie)
         self.assertTrue(info.is_text_post())
         self.assertEqual(info.author, 'Sakurai')
-        self.assertTrue(isinstance(info.text, str)) # Not unicode
+        self.assertTrue(isinstance(info.text, str))  # Not unicode
+        self.assertTrue(isinstance(info.author, str))
         self.assertEqual(info.text, text)
         self.assertIsNone(info.picture)
         self.assertIsNone(info.video)
@@ -150,7 +151,8 @@ class MiiverseTests(unittest.TestCase):
         info = self.sbot.get_info_from_post(url, self.cookie)
         self.assertTrue(info.is_picture_post())
         self.assertEqual(info.author, 'Sakurai')
-        self.assertTrue(isinstance(info.text, str)) # Not unicode
+        self.assertTrue(isinstance(info.text, str))  # Not unicode
+        self.assertTrue(isinstance(info.author, str))
         self.assertEqual(info.text, text)
         self.assertEqual(info.picture, picture)
         self.assertIsNone(info.video)
@@ -167,7 +169,8 @@ class MiiverseTests(unittest.TestCase):
         info = self.sbot.get_info_from_post(url, self.cookie)
         self.assertTrue(info.is_video_post())
         self.assertEqual(info.author, 'Sakurai')
-        self.assertTrue(isinstance(info.text, str)) # Not unicode
+        self.assertTrue(isinstance(info.text, str))  # Not unicode
+        self.assertTrue(isinstance(info.author, str))
         self.assertEqual(info.text, text)
         self.assertIsNone(info.picture)
         self.assertEqual(info.video, video)
@@ -186,7 +189,7 @@ class ImgurTests(unittest.TestCase):
 
     def test_upload_to_imgur(self):
         unique_text = unicode(uuid.uuid4()) \
-            + u' No \u0CA0_\u0CA0 ; Yes \u0CA0\u203F\u0CA0'
+            + u' No \u0CA0_\u0CA0 ; Yes \u0CA0\u203F\u0CA0 \u2026'
         unique_text = unique_text.encode('utf-8')
         post_details = sakuraibot.PostDetails('Pug', unique_text,
                                               self.picture, None, None)
@@ -224,9 +227,17 @@ class RedditTests(unittest.TestCase):
         self.subreddit = self.r.get_subreddit(SUBREDDIT)
         self.r.config.cache_timeout = 0
 
+        self.unicode_text = u' No \u0CA0_\u0CA0 ;' \
+                            u' Yes \u0CA0\u203F\u0CA0 \u2026'
+        self.long_text = \
+            u'. By the way this text is very very very very very very very ' \
+            u'very very very very very very very very very very very very ' \
+            u'very very very very very very very very very very very very ' \
+            u'very very very very very very very very very very very long.'
+
     def test_post_to_reddit_text(self):
         unique_text = u'Text test: ' + unicode(uuid.uuid4()) +\
-                      u' No \u0CA0_\u0CA0 ; Yes \u0CA0\u203F\u0CA0'
+                      self.unicode_text
         unique_text = unique_text.encode('utf-8')
         post_details = sakuraibot.PostDetails('Pug', unique_text,
                                               None, None, None)
@@ -242,12 +253,8 @@ class RedditTests(unittest.TestCase):
         #TODO test comment
 
     def test_post_to_reddit_text_long(self):
-        unique_text = u'Long text test: ' + unicode(uuid.uuid4()) +\
-            u' No \u0CA0_\u0CA0 ; Yes \u0CA0\u203F\u0CA0'\
-            u'. By the way this text is very very very very very very very '\
-            u'very very very very very very very very very very very very ' \
-            u'very very very very very very very very very very very very ' \
-            u'very very very very very very very very very very very long.'
+        unique_text = u'Long text test: ' + unicode(uuid.uuid4()) + \
+            self.unicode_text + self.long_text
         unique_text = unique_text.encode('utf-8')
         post_details = sakuraibot.PostDetails('Pug', unique_text,
                                               None, None, None)
@@ -265,8 +272,8 @@ class RedditTests(unittest.TestCase):
     def test_post_to_reddit_picture(self):
         unique = uuid.uuid4()
         picture = 'http://i.imgur.com/uQIRrD2.gif?unique=' + str(unique)
-        unique_text = u'Picture test: ' + unicode(unique) +\
-                      u' No \u0CA0_\u0CA0 ; Yes \u0CA0\u203F\u0CA0'
+        unique_text = u'Picture test: ' + unicode(unique) + \
+                      self.unicode_text
         unique_text = unique_text.encode('utf-8')
         post_details = sakuraibot.PostDetails('Pug', unique_text,
                                               picture, None, picture)
@@ -284,12 +291,8 @@ class RedditTests(unittest.TestCase):
     def test_post_to_reddit_picture_long(self):
         unique = uuid.uuid4()
         picture = 'http://i.imgur.com/uQIRrD2.gif?unique=' + str(unique)
-        unique_text = u'Long Picture test: ' + unicode(unique) +\
-            u' No \u0CA0_\u0CA0 ; Yes \u0CA0\u203F\u0CA0'\
-            u'. By the way this text is very very very very very very very ' \
-            u'very very very very very very very very very very very very ' \
-            u'very very very very very very very very very very very very ' \
-            u'very very very very very very very very very very very long.'
+        unique_text = u'Long Picture test: ' + unicode(unique) + \
+                      self.unicode_text + self.long_text
         unique_text = unique_text.encode('utf-8')
         post_details = sakuraibot.PostDetails('Pug', unique_text,
                                               picture, None, picture)
@@ -311,7 +314,7 @@ class RedditTests(unittest.TestCase):
         video = 'http://www.youtube.com/watch?v=7anpvGqQxwI?unique='\
                 + str(unique)
         unique_text = u'Video test: ' + unicode(unique) + \
-                      u' No \u0CA0_\u0CA0 ; Yes \u0CA0\u203F\u0CA0'
+                      self.unicode_text
         unique_text = unique_text.encode('utf-8')
         post_details = sakuraibot.PostDetails('Pug', unique_text,
                                               None, video, None)
