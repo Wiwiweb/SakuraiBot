@@ -23,7 +23,7 @@ from time import sleep
 
 import sys
 
-VERSION = "1.5"
+VERSION = "1.6"
 USER_AGENT = "SakuraiBot v" + VERSION + " by /u/Wiwiweb for /r/smashbros"
 
 REDDIT_PASSWORD_FILENAME = "../res/private/reddit-password.txt"
@@ -105,6 +105,7 @@ class SakuraiBot:
         self.picture_md5_filename = picture_md5_filename
         self.logger = logger
         self.debug = debug
+        self.dont_retry = False
 
     def get_new_miiverse_cookie(self):
         cookies = cookielib.CookieJar()
@@ -166,7 +167,7 @@ class SakuraiBot:
         return True
 
     def get_current_pic_md5(self):
-        """Get the md5 is the current smashbros.com pic."""
+        """Get the md5 of the current smashbros.com pic."""
         response = urllib2.urlopen(SMASH_DAILY_PIC)
         pic = response.read()
         md5 = hashlib.md5()
@@ -354,6 +355,7 @@ class SakuraiBot:
             text_too_long = True
 
         if not text_post:
+            self.dont_retry = True
             submission = r.submit(self.subreddit, title, url=url)
             self.logger.info("New submission posted! " + submission.short_link)
 
@@ -388,6 +390,7 @@ class SakuraiBot:
         comment = comment.strip()
 
         if text_post:
+            self.dont_retry = True
             if comment != '':
                 submission = r.submit(self.subreddit, title, text=comment)
                 self.logger.info("New self-post posted with extra text! "
@@ -432,7 +435,6 @@ class SakuraiBot:
         self.logger.info("Md5 updated.")
 
     def bot_cycle(self):
-        global global_retries
         miiverse_cookie = self.get_new_miiverse_cookie()
         post_url = self.get_miiverse_last_post(miiverse_cookie)
 
@@ -445,7 +447,6 @@ class SakuraiBot:
                 if post_details.is_picture_post():
                     post_details.smashbros_pic = \
                         self.upload_to_imgur(post_details)
-                global_retries = 0
                 self.post_to_reddit(post_details)
                 if not self.debug:
                     self.set_last_post(post_url)

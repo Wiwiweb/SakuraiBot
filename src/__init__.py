@@ -46,8 +46,6 @@ else:
     subreddit = 'smashbros'
     imgur_album_id = '8KnTr'
 
-global_retries = 5
-
 root_logger = logging.getLogger()
 if debug:
     logging.basicConfig(stream=sys.stdout, level=logging.DEBUG,
@@ -86,10 +84,12 @@ def send_alert_mail():
     except smtplib.SMTPException as e:
         logging.error("ERROR: Couldn't send alert email: " + str(e))
 
+global_retries = 5
 
-def retry_or_die():
+
+def retry_or_die(dont_retry):
     global global_retries
-    if global_retries == 0:
+    if global_retries == 0 or dont_retry:
         logging.error("ERROR: Shutting down SakuraiBot.")
         send_alert_mail()
         quit()
@@ -99,7 +99,6 @@ def retry_or_die():
                       + str(global_retries) + " more times.")
 
 if __name__ == '__main__':
-    global global_retries
     logging.info("--- Starting sakuraibot ---")
     sbot = SakuraiBot(username, subreddit, imgur_album_id,
                       LAST_POST_FILENAME, EXTRA_COMMENT_FILENAME,
@@ -113,17 +112,18 @@ if __name__ == '__main__':
                 if debug:  # Don't loop in debug
                     quit()
                 global_retries = 5
+                sbot.dont_retry = False
 
             except urllib2.HTTPError as e:
-                logging.error("ERROR: HTTPError code " + str(e.code) +
-                              " encountered while making request.")
-                retry_or_die()
+                logging.exception("ERROR: HTTPError code " + str(e.code) +
+                                  " encountered while making request.")
+                retry_or_die(sbot.dont_retry)
             except urllib2.URLError as e:
-                logging.error("ERROR: URLError: " + str(e.reason))
-                retry_or_die()
+                logging.exception("ERROR: URLError: " + str(e.reason))
+                retry_or_die(sbot.dont_retry)
             except Exception as e:
-                logging.error("ERROR: Unknown error: " + str(e))
-                retry_or_die()
+                logging.exception("ERROR: Unknown error: " + str(e))
+                retry_or_die(sbot.dont_retry)
 
             sleep(FREQUENCY)
 
