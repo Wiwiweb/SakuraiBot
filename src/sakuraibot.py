@@ -145,7 +145,7 @@ class SakuraiBot:
                               " Shutting down.")
             quit()
         else:
-            raise("Unknown error")
+            raise Exception("Couldn't retrieve miiverse info. Page: " + page)
 
     def is_new_post(self, post_url):
         """Compare the latest post URL to the ones we already processed."""
@@ -249,7 +249,7 @@ class SakuraiBot:
             except urllib2.HTTPError as e:
                 retries -= 1
                 if retries == 0:
-                    raise e
+                    raise
                 else:
                     self.logger.error("ERROR: HTTPError: " + str(e.reason) +
                                       ". Retrying.")
