@@ -410,8 +410,7 @@ class SakuraiBot:
         # Adding flair
         # Temporary hack while PRAW gets updated
         data = {'flair_template_id': ID_FLAIR_SSB4,
-                'link':              submission.fullname,
-                'name':              submission.fullname}
+                'link':              submission.fullname}
         r.config.API_PATHS['select_flair'] = 'api/selectflair/'
         r.request_json(r.config['select_flair'], data=data)
         self.logger.info("Tagged as SSB4.")
