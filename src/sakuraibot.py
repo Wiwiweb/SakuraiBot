@@ -408,11 +408,7 @@ class SakuraiBot:
                 self.logger.info("No comment posted.")
 
         # Adding flair
-        # Temporary hack while PRAW gets updated
-        data = {'flair_template_id': ID_FLAIR_SSB4,
-                'link':              submission.fullname}
-        r.config.API_PATHS['select_flair'] = 'api/selectflair/'
-        r.request_json(r.config['select_flair'], data=data)
+        r.select_flair(submission, ID_FLAIR_SSB4)
         self.logger.info("Tagged as SSB4.")
 
         return r.get_submission(submission_id=submission.id, comment_limit=1)
