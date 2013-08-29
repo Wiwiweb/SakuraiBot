@@ -12,12 +12,13 @@ import logging
 import sys
 import urllib2
 import smtplib
-from logging.handlers import TimedRotatingFileHandler
+from logging.handlers import TimedRotatingFileHandler, RotatingFileHandler
 from time import sleep
 
 FREQUENCY = 300
 
 LOG_FILE = "../logs/sakuraibot.log"
+LOG_FILE_DEBUG = "../logs/sakuraibot-debug.log"
 LAST_POST_FILENAME = "../res/last-post.txt"
 EXTRA_COMMENT_FILENAME = "../res/extra-comment.txt"
 PICTURE_MD5_FILENAME = "../res/last-picture-md5.txt"
@@ -52,11 +53,15 @@ if debug:
                         format='%(asctime)s: %(message)s')
 else:
     # Logging
-    timed_logger = TimedRotatingFileHandler(LOG_FILE, 'midnight')
-    timed_logger.setFormatter(logging.Formatter('%(asctime)s: %(message)s'))
-    timed_logger.setLevel(logging.INFO)
-    root_logger.setLevel(logging.INFO)
-    root_logger.addHandler(timed_logger)
+    timed_handler = TimedRotatingFileHandler(LOG_FILE, 'midnight')
+    timed_handler.setFormatter(logging.Formatter('%(asctime)s: %(message)s'))
+    timed_handler.setLevel(logging.INFO)
+    debug_handler = RotatingFileHandler(LOG_FILE_DEBUG, maxBytes=102400,
+                                        backupCount=1)
+    debug_handler.setLevel(logging.DEBUG)
+    root_logger.setLevel(logging.DEBUG)
+    root_logger.addHandler(timed_handler)
+    root_logger.addHandler(debug_handler)
 
 if len(sys.argv) > 1 and '--miiverse' in sys.argv:
     miiverse_main = True
@@ -67,9 +72,9 @@ else:
 
 
 def send_alert_mail():
-    message = "From: Script Alert: SakuraiBot <"+MAIL_ADDRESS+">\n" \
+    message = "From: Script Alert: SakuraiBot <" + MAIL_ADDRESS + ">\n" \
               "Subject: SakuraiBot stopped unexpectedly!\n\n"
-    f = open(LOG_FILE, 'r')
+    f = open(LOG_FILE_DEBUG, 'r')
     log_content = f.read()
     f.close()
     message += log_content
