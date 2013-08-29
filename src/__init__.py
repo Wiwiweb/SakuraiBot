@@ -58,6 +58,7 @@ else:
     timed_handler.setLevel(logging.INFO)
     debug_handler = RotatingFileHandler(LOG_FILE_DEBUG, maxBytes=102400,
                                         backupCount=1)
+    debug_handler.setFormatter(logging.Formatter('%(asctime)s: %(message)s'))
     debug_handler.setLevel(logging.DEBUG)
     root_logger.setLevel(logging.DEBUG)
     root_logger.addHandler(timed_handler)
