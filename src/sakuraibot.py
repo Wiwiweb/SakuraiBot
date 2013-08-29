@@ -204,7 +204,7 @@ class SakuraiBot:
         text = soup.find('p', {'class': 'post-content-text'}) \
             .get_text().strip()
         text = text.encode('utf-8')
-        self.logger.debug(type(text))
+        self.logger.debug("Text of type: " + type(text))
         self.logger.info("Post text: " + text)
 
         screenshot_container = soup.find('div',
@@ -333,8 +333,8 @@ class SakuraiBot:
         text = '"' + post_details.text + '"'
         title = title_format.format(type=post_type, text=text, extra=extra)
         self.logger.debug("Title: " + title)
-        self.logger.debug(len(title))
-        self.logger.debug(len(title.decode('utf-8')))
+        self.logger.debug("Title length: " + len(title))
+        self.logger.debug("Decoded title length : " + len(title.decode('utf-8')))
         if len(title.decode('utf-8')) > REDDIT_TITLE_LIMIT:
             if text_post:
                 too_long_type = "post"
