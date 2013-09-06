@@ -126,6 +126,9 @@ class SakuraiBot:
             if cookie.name == 'ms':
                 miiverse_cookie = cookie.value
                 break
+        if miiverse_cookie is None:
+            self.logger.debug("Page: " + urllib2.urlopen(req).read())
+            raise Exception("Couldn't retrieve miiverse cookie.")
         return miiverse_cookie
 
     def get_miiverse_last_post(self, miiverse_cookie):
@@ -260,7 +263,8 @@ class SakuraiBot:
                     raise
                 else:
                     self.logger.error("ERROR: HTTPError: " + str(e.reason) +
-                                      ". Retrying.")
+                                      ". Retrying imgur upload" + retries +
+                                      " more times.")
                     sleep(2)
                     continue
 

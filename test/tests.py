@@ -74,12 +74,12 @@ class BasicTests(unittest.TestCase):
                                  "Malformed cookie: " + cookie)
 
     def test_is_new_post_yes(self):
-        self.assertTrue(self.
-        sbot.is_new_post('/posts/AYMHAAABAAAYUKk9MS0TYA'))
+        self.assertTrue(self.sbot.is_new_post(
+            '/posts/AYMHAAABAAAYUKk9MS0TYA'))
 
     def test_is_new_post_no(self):
-        self.assertFalse(self.
-        sbot.is_new_post('/posts/AYMHAAABAAD4UV51j0kRvw'))
+        self.assertFalse(self.sbot.is_new_post(
+            '/posts/AYMHAAABAAD4UV51j0kRvw'))
 
     def test_get_current_pic_md5(self):
         md5 = self.sbot.get_current_pic_md5()
@@ -88,7 +88,6 @@ class BasicTests(unittest.TestCase):
 
     def test_is_website_new_yes(self):
         md5 = '3c0cb77a45b1215d9d4ef6cda0d89959'
-        self.assertTrue(self.sbot.is_website_new(md5))
 
     def test_is_website_new_no(self):
         md5 = 'ea29d1e00c26ccd3088263f5340be961'
