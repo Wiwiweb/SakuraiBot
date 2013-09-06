@@ -22,8 +22,6 @@ from random import randint
 from time import sleep
 import base64
 
-import sys
-
 VERSION = "1.6"
 USER_AGENT = "SakuraiBot v" + VERSION + " by /u/Wiwiweb for /r/smashbros"
 
@@ -115,11 +113,11 @@ class SakuraiBot:
         cookies = cookielib.CookieJar()
         opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(cookies))
 
-        parameters = {'client_id':     'ead88d8d450f40ada5682060a8885ec0',
+        parameters = {'client_id': 'ead88d8d450f40ada5682060a8885ec0',
                       'response_type': 'code',
-                      'redirect_uri':  MIIVERSE_CALLBACK_URL,
-                      'username':      MIIVERSE_USERNAME,
-                      'password':      miiverse_password}
+                      'redirect_uri': MIIVERSE_CALLBACK_URL,
+                      'username': MIIVERSE_USERNAME,
+                      'password': miiverse_password}
         data = urlencode(parameters)
         req = urllib2.Request(NINTENDO_LOGIN_PAGE, data)
         opener.open(req)
@@ -205,8 +203,8 @@ class SakuraiBot:
         text = soup.find('p', {'class': 'post-content-text'}) \
             .get_text().strip()
         text = text.encode('utf-8')
-        self.logger.debug("Text of type: " + type(text))
-        self.logger.info("Post text: " + text)
+        self.logger.debug("Text of type: " + str(type(text)))
+        self.logger.info("Post text: " + str(text))
 
         screenshot_container = soup.find('div',
                                          {'class': 'screenshot-container'})
@@ -218,7 +216,7 @@ class SakuraiBot:
         elif 'video' in screenshot_container['class']:
             # Video post
             picture_url = None
-            video_url = soup.find('p', {'class': 'url-link'})\
+            video_url = soup.find('p', {'class': 'url-link'}) \
                 .find('a').get('href')
             self.logger.info("Post video: " + video_url)
         else:
@@ -245,9 +243,9 @@ class SakuraiBot:
         while True:
             try:
                 parameters = {'refresh_token': imgur_token,
-                              'client_id':     IMGUR_CLIENT_ID,
+                              'client_id': IMGUR_CLIENT_ID,
                               'client_secret': imgur_secret,
-                              'grant_type':    'refresh_token'}
+                              'grant_type': 'refresh_token'}
                 self.logger.debug("Token request parameters: "
                                   + str(parameters))
                 data = urlencode(parameters)
@@ -277,11 +275,11 @@ class SakuraiBot:
                         title = title.rsplit(' ', 1)[0]  # Remove last word
                     title += too_long
                     description = post_details.text
-                parameters = {'image':       pic_base64,
-                              'title':       title,
-                              'album_id':    self.imgur_album,
+                parameters = {'image': pic_base64,
+                              'title': title,
+                              'album_id': self.imgur_album,
                               'description': description,
-                              'type':        'base64'}
+                              'type': 'base64'}
                 self.logger.debug("Upload request parameters: "
                                   + str(parameters))
                 data = urlencode(parameters)
@@ -342,8 +340,9 @@ class SakuraiBot:
         text = '"' + post_details.text + '"'
         title = title_format.format(type=post_type, text=text, extra=extra)
         self.logger.debug("Title: " + title)
-        self.logger.debug("Title length: " + len(title))
-        self.logger.debug("Decoded title length : " + len(title.decode('utf-8')))
+        self.logger.debug("Title length: " + str(len(title)))
+        self.logger.debug("Decoded title length : " +
+                          str(len(title.decode('utf-8'))))
         if len(title.decode('utf-8')) > REDDIT_TITLE_LIMIT:
             if text_post:
                 too_long_type = "post"

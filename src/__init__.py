@@ -73,8 +73,8 @@ else:
 
 
 def send_alert_mail():
-    message = "From: Script Alert: SakuraiBot <" + MAIL_ADDRESS + ">\n" \
-              "Subject: SakuraiBot stopped unexpectedly!\n\n"
+    message = ("From: Script Alert: SakuraiBot <" + MAIL_ADDRESS + ">\n" +
+               "Subject: SakuraiBot stopped unexpectedly!\n\n")
     f = open(LOG_FILE_DEBUG, 'r')
     log_content = f.read()
     f.close()
@@ -90,6 +90,7 @@ def send_alert_mail():
     except smtplib.SMTPException as e:
         logging.error("ERROR: Couldn't send alert email: " + str(e))
 
+
 global_retries = 5
 
 
@@ -103,6 +104,7 @@ def retry_or_die(dont_retry):
         global_retries -= 1
         logging.error("ERROR: Sleeping another cycle and retrying "
                       + str(global_retries) + " more times.")
+
 
 if __name__ == '__main__':
     logging.info("--- Starting sakuraibot ---")

@@ -28,7 +28,6 @@ SUBREDDIT = 'SakuraiBot_test'
 IMGUR_ALBUM_ID = 'ugL4N'
 USER_AGENT = "SakuraiBot test suite"
 
-
 REDDIT_PASSWORD_FILENAME = '../res/private/reddit-password.txt'
 LAST_POST_FILENAME = 'last-post.txt'
 EXTRA_COMMENT_FILENAME = 'extra-comment.txt'
@@ -38,7 +37,6 @@ REDDIT_PASSWORD = sakuraibot.reddit_password
 
 logging.basicConfig(stream=sys.stdout, level=logging.DEBUG,
                     format='%(asctime)s: %(message)s')
-
 
 unicode_text = u' No \u0CA0_\u0CA0 ;' \
                u' Yes \u0CA0\u203F\u0CA0 \u2026'
@@ -50,9 +48,8 @@ long_text = \
 
 
 class CodeFormatTests(unittest.TestCase):
-
     def test_pep8_conformance(self):
-        pep8style = pep8.StyleGuide(quiet=True)
+        pep8style = pep8.StyleGuide()
         result = pep8style.check_files(['../src/sakuraibot.py',
                                         '../src/__init__.py', 'tests.py'])
         self.assertFalse(result.total_errors, result.messages)
@@ -64,7 +61,6 @@ class CodeFormatTests(unittest.TestCase):
 
 
 class BasicTests(unittest.TestCase):
-
     def setUp(self):
         self.sbot = sakuraibot.SakuraiBot(USERNAME, SUBREDDIT, IMGUR_ALBUM_ID,
                                           LAST_POST_FILENAME,
@@ -79,11 +75,11 @@ class BasicTests(unittest.TestCase):
 
     def test_is_new_post_yes(self):
         self.assertTrue(self.
-                        sbot.is_new_post('/posts/AYMHAAABAAAYUKk9MS0TYA'))
+        sbot.is_new_post('/posts/AYMHAAABAAAYUKk9MS0TYA'))
 
     def test_is_new_post_no(self):
         self.assertFalse(self.
-                         sbot.is_new_post('/posts/AYMHAAABAAD4UV51j0kRvw'))
+        sbot.is_new_post('/posts/AYMHAAABAAD4UV51j0kRvw'))
 
     def test_get_current_pic_md5(self):
         md5 = self.sbot.get_current_pic_md5()
@@ -119,7 +115,6 @@ class BasicTests(unittest.TestCase):
 
 
 class MiiverseTests(unittest.TestCase):
-
     def setUp(self):
         self.sbot = sakuraibot.SakuraiBot(USERNAME, SUBREDDIT, IMGUR_ALBUM_ID,
                                           LAST_POST_FILENAME,
@@ -187,7 +182,6 @@ class MiiverseTests(unittest.TestCase):
 
 
 class ImgurTests(unittest.TestCase):
-
     def setUp(self):
         self.sbot = sakuraibot.SakuraiBot(USERNAME, SUBREDDIT, IMGUR_ALBUM_ID,
                                           LAST_POST_FILENAME,
@@ -247,7 +241,6 @@ class ImgurTests(unittest.TestCase):
 
 
 class RedditTests(unittest.TestCase):
-
     def setUp(self):
         self.sbot = sakuraibot.SakuraiBot(USERNAME, SUBREDDIT, IMGUR_ALBUM_ID,
                                           LAST_POST_FILENAME,
@@ -260,7 +253,7 @@ class RedditTests(unittest.TestCase):
         self.r.config.cache_timeout = 0
 
     def test_post_to_reddit_text(self):
-        unique_text = u'Text test: ' + unicode(uuid.uuid4()) +\
+        unique_text = u'Text test: ' + unicode(uuid.uuid4()) + \
                       unicode_text
         unique_text = unique_text.encode('utf-8')
         post_details = sakuraibot.PostDetails('Pug', unique_text,
@@ -278,7 +271,7 @@ class RedditTests(unittest.TestCase):
 
     def test_post_to_reddit_text_long(self):
         unique_text = u'Long text test: ' + unicode(uuid.uuid4()) + \
-            unicode_text + long_text
+                      unicode_text + long_text
         unique_text = unique_text.encode('utf-8')
         post_details = sakuraibot.PostDetails('Pug', unique_text,
                                               None, None, None)
@@ -337,7 +330,7 @@ class RedditTests(unittest.TestCase):
 
     def test_post_to_reddit_video(self):
         unique = uuid.uuid4()
-        video = 'http://www.youtube.com/watch?v=7anpvGqQxwI?unique='\
+        video = 'http://www.youtube.com/watch?v=7anpvGqQxwI?unique=' \
                 + str(unique)
         unique_text = u'Video test: ' + unicode(unique) + \
                       unicode_text
@@ -357,7 +350,6 @@ class RedditTests(unittest.TestCase):
 
 
 class CompleteTests(unittest.TestCase):
-
     def setUp(self):
         self.sbot = sakuraibot.SakuraiBot(USERNAME, SUBREDDIT, IMGUR_ALBUM_ID,
                                           LAST_POST_FILENAME,
