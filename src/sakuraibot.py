@@ -144,7 +144,8 @@ class SakuraiBot:
                               " Shutting down.")
             quit()
         else:
-            raise Exception("Couldn't retrieve miiverse info. Page: " + page)
+            self.logger.debug("Page: " + page)
+            raise Exception("Couldn't retrieve miiverse info.")
 
     def is_new_post(self, post_url):
         """Compare the latest post URL to the ones we already processed."""
