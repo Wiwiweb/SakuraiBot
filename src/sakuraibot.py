@@ -20,6 +20,7 @@ from datetime import datetime
 from json import loads
 from random import randint
 from time import sleep
+import base64
 
 import sys
 
@@ -230,6 +231,14 @@ class SakuraiBot:
 
     def upload_to_imgur(self, post_details):
         """Upload the picture to imgur and returns the link."""
+
+        # Get image base64 data
+        # We could send the url to imgur directly
+        # but sometimes imgur will not see the same image
+        response = urllib2.urlopen(SMASH_DAILY_PIC)
+        pic = response.read()
+        pic_base64 = base64.b64encode(pic)
+
         retries = 5
 
         # Request new access token
@@ -268,11 +277,11 @@ class SakuraiBot:
                         title = title.rsplit(' ', 1)[0]  # Remove last word
                     title += too_long
                     description = post_details.text
-                parameters = {'image':       SMASH_DAILY_PIC,
+                parameters = {'image':       pic_base64,
                               'title':       title,
                               'album_id':    self.imgur_album,
                               'description': description,
-                              'type':        'URL'}
+                              'type':        'base64'}
                 self.logger.debug("Upload request parameters: "
                                   + str(parameters))
                 data = urlencode(parameters)
