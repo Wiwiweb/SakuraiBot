@@ -21,6 +21,7 @@ from json import loads
 from random import randint
 from time import sleep
 import base64
+import requests
 
 VERSION = "1.6"
 USER_AGENT = "SakuraiBot v" + VERSION + " by /u/Wiwiweb for /r/smashbros"
@@ -113,6 +114,8 @@ class SakuraiBot:
         cookies = cookielib.CookieJar()
         opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(cookies))
 
+        NINTENDO_LOGIN_PAGE = 'https://httpbin.org/post'
+
         parameters = {'client_id': 'ead88d8d450f40ada5682060a8885ec0',
                       'response_type': 'code',
                       'redirect_uri': MIIVERSE_CALLBACK_URL,
@@ -120,16 +123,31 @@ class SakuraiBot:
                       'password': miiverse_password}
         data = urlencode(parameters)
         req = urllib2.Request(NINTENDO_LOGIN_PAGE, data)
-        opener.open(req)
-        miiverse_cookie = None
-        for cookie in cookies:
-            if cookie.name == 'ms':
-                miiverse_cookie = cookie.value
-                break
-        if miiverse_cookie is None:
-            self.logger.debug("Page: " + urllib2.urlopen(req).read())
-            raise Exception("Couldn't retrieve miiverse cookie.")
-        return miiverse_cookie
+        page = urllib2.urlopen(req).read()
+        self.logger.debug('urllib2: -----------------------------------------------------------------')
+        self.logger.debug(page)
+        # opener.open(req)
+        # miiverse_cookie = None
+        # for cookie in cookies:
+        #     if cookie.name == 'ms':
+        #         miiverse_cookie = cookie.value
+        #         break
+        # if miiverse_cookie is None:
+        #     self.logger.debug("Page: " + urllib2.urlopen(req).read())
+        #     raise Exception("Couldn't retrieve miiverse cookie.")
+
+        self.logger.debug('cookie: -----------------------------------------------------------------')
+        # self.logger.debug(miiverse_cookie)
+
+        headers = {'User-Agent': 'Python-urllib/2.7',
+                   'Accept-Encoding': 'identity'}
+        req2 = requests.post(NINTENDO_LOGIN_PAGE, data=parameters, headers=headers)
+        self.logger.debug('requests: -----------------------------------------------------------------')
+        self.logger.debug(req2.text)
+        self.logger.debug('cookie: -----------------------------------------------------------------')
+        # self.logger.debug(req.cookies['ms'])
+
+        return None
 
     def get_miiverse_last_post(self, miiverse_cookie):
         """Fetch the URL path to the last Miiverse post."""
