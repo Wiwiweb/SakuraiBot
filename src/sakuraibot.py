@@ -11,7 +11,6 @@ https://github.com/trisweb/reddit-xkcdbot
 
 import praw
 import urllib2
-import cookielib
 import hashlib
 from logging import getLogger
 from urllib import urlencode
@@ -91,6 +90,16 @@ class PostDetails:
         return self.video is not None
 
 
+class MyHTTPRedirectHandler(urllib2.HTTPRedirectHandler):
+    pass
+    # def http_error_302(self, req, fp, code, msg, headers):
+    #     print("new request")
+    #     print(headers)
+    #     return urllib2.HTTPRedirectHandler.http_error_302(self, req, fp, code, msg, headers)
+
+    # http_error_301 = http_error_303 = http_error_307 = http_error_302
+
+
 class SakuraiBot:
     def __init__(self, username, subreddit, imgur_album,
                  last_post_filename,
@@ -108,46 +117,18 @@ class SakuraiBot:
         self.dont_retry = False
 
     def get_new_miiverse_cookie(self):
-        cookies = cookielib.CookieJar()
-        urllib2.HTTPCookieProcessor(cookies)
-
-        cookies = cookielib.CookieJar()
-        opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(cookies))
-
-        NINTENDO_LOGIN_PAGE = 'https://httpbin.org/post'
-
         parameters = {'client_id': 'ead88d8d450f40ada5682060a8885ec0',
                       'response_type': 'code',
                       'redirect_uri': MIIVERSE_CALLBACK_URL,
                       'username': MIIVERSE_USERNAME,
                       'password': miiverse_password}
-        data = urlencode(parameters)
-        req = urllib2.Request(NINTENDO_LOGIN_PAGE, data)
-        page = urllib2.urlopen(req).read()
-        self.logger.debug('urllib2: -----------------------------------------------------------------')
-        self.logger.debug(page)
-        # opener.open(req)
-        # miiverse_cookie = None
-        # for cookie in cookies:
-        #     if cookie.name == 'ms':
-        #         miiverse_cookie = cookie.value
-        #         break
-        # if miiverse_cookie is None:
-        #     self.logger.debug("Page: " + urllib2.urlopen(req).read())
-        #     raise Exception("Couldn't retrieve miiverse cookie.")
-
-        self.logger.debug('cookie: -----------------------------------------------------------------')
-        # self.logger.debug(miiverse_cookie)
-
-        headers = {'User-Agent': 'Python-urllib/2.7',
-                   'Accept-Encoding': 'identity'}
-        req2 = requests.post(NINTENDO_LOGIN_PAGE, data=parameters, headers=headers)
-        self.logger.debug('requests: -----------------------------------------------------------------')
-        self.logger.debug(req2.text)
-        self.logger.debug('cookie: -----------------------------------------------------------------')
-        # self.logger.debug(req.cookies['ms'])
-
-        return None
+        req = requests.post(NINTENDO_LOGIN_PAGE, data=parameters)
+        miiverse_cookie = req.history[1].cookies['ms']
+        if miiverse_cookie is None:
+            self.logger.debug("Page: " + req.text)
+            self.logger.debug("History: " + req.history)
+            raise Exception("Couldn't retrieve miiverse cookie.")
+        return miiverse_cookie
 
     def get_miiverse_last_post(self, miiverse_cookie):
         """Fetch the URL path to the last Miiverse post."""
