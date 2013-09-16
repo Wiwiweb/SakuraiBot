@@ -10,13 +10,10 @@ https://github.com/trisweb/reddit-xkcdbot
 """
 
 import praw
-import urllib2
 import hashlib
 from logging import getLogger
-from urllib import urlencode
 from bs4 import BeautifulSoup
 from datetime import datetime
-from json import loads
 from random import randint
 from time import sleep
 import base64
@@ -90,16 +87,6 @@ class PostDetails:
         return self.video is not None
 
 
-class MyHTTPRedirectHandler(urllib2.HTTPRedirectHandler):
-    pass
-    # def http_error_302(self, req, fp, code, msg, headers):
-    #     print("new request")
-    #     print(headers)
-    #     return urllib2.HTTPRedirectHandler.http_error_302(self, req, fp, code, msg, headers)
-
-    # http_error_301 = http_error_303 = http_error_307 = http_error_302
-
-
 class SakuraiBot:
     def __init__(self, username, subreddit, imgur_album,
                  last_post_filename,
@@ -132,10 +119,10 @@ class SakuraiBot:
 
     def get_miiverse_last_post(self, miiverse_cookie):
         """Fetch the URL path to the last Miiverse post."""
-        req = urllib2.Request(MIIVERSE_URL + MIIVERSE_DEVELOPER_PAGE)
-        req.add_header('Cookie', 'ms=' + miiverse_cookie)
-        page = urllib2.urlopen(req).read()
-        soup = BeautifulSoup(page)
+        cookies = {'ms': miiverse_cookie}
+        req = requests.get(MIIVERSE_URL + MIIVERSE_DEVELOPER_PAGE,
+                           cookies=cookies)
+        soup = BeautifulSoup(req.text)
         post_url_class = soup.find('div', {'class': 'post'})
         if post_url_class is not None:
             post_url = post_url_class.get('data-href')
@@ -146,7 +133,7 @@ class SakuraiBot:
                               " Shutting down.")
             quit()
         else:
-            self.logger.debug("Page: " + page)
+            self.logger.debug("Page: " + req.text)
             raise Exception("Couldn't retrieve miiverse info.")
 
     def is_new_post(self, post_url):
@@ -170,10 +157,9 @@ class SakuraiBot:
 
     def get_current_pic_md5(self):
         """Get the md5 of the current smashbros.com pic."""
-        response = urllib2.urlopen(SMASH_DAILY_PIC)
-        pic = response.read()
+        req = requests.get(SMASH_DAILY_PIC)
         md5 = hashlib.md5()
-        md5.update(pic)
+        md5.update(req.content)
         current_md5 = md5.hexdigest()
         self.logger.debug("Current pic md5: " + current_md5)
         return current_md5
@@ -194,10 +180,9 @@ class SakuraiBot:
 
     def get_info_from_post(self, post_url, miiverse_cookie):
         """Fetch author, text and picture URL from the post."""
-        req = urllib2.Request(MIIVERSE_URL + post_url)
-        req.add_header('Cookie', 'ms=' + miiverse_cookie)
-        page = urllib2.urlopen(req).read()
-        soup = BeautifulSoup(page)
+        cookies = {'ms': miiverse_cookie}
+        req = requests.get(MIIVERSE_URL + post_url, cookies=cookies)
+        soup = BeautifulSoup(req.text)
 
         author = soup.find('p', {'class': 'user-name'}).find('a').get_text()
         author = author.encode('utf-8')
@@ -236,9 +221,8 @@ class SakuraiBot:
         # Get image base64 data
         # We could send the url to imgur directly
         # but sometimes imgur will not see the same image
-        response = urllib2.urlopen(SMASH_DAILY_PIC)
-        pic = response.read()
-        pic_base64 = base64.b64encode(pic)
+        req = requests.get(SMASH_DAILY_PIC)
+        pic_base64 = base64.b64encode(req.content)
 
         retries = 5
 
@@ -251,12 +235,10 @@ class SakuraiBot:
                               'grant_type': 'refresh_token'}
                 self.logger.debug("Token request parameters: "
                                   + str(parameters))
-                data = urlencode(parameters)
-                req = urllib2.Request(IMGUR_REFRESH_URL, data)
-                json_resp = loads(urllib2.urlopen(req).read())
-                imgur_access_token = json_resp['access_token']
+                req = requests.post(IMGUR_REFRESH_URL, data=parameters)
+                imgur_access_token = req.json()['access_token']
                 break
-            except urllib2.HTTPError as e:
+            except requests.HTTPError as e:
                 retries -= 1
                 if retries == 0:
                     raise
@@ -286,15 +268,14 @@ class SakuraiBot:
                               'type': 'base64'}
                 self.logger.debug("Upload request parameters: "
                                   + str(parameters))
-                data = urlencode(parameters)
-                req = urllib2.Request(IMGUR_UPLOAD_URL, data)
-                req.add_header('Authorization', 'Bearer ' + imgur_access_token)
-                json_resp = loads(urllib2.urlopen(req).read())
+                headers = {'Authorization': 'Bearer ' + imgur_access_token}
+                req = requests.post(IMGUR_UPLOAD_URL, data=parameters,
+                                    headers=headers)
 
-                picture_url = json_resp['data']['link']
+                picture_url = req.json()['data']['link']
                 self.logger.info("Uploaded to imgur! " + picture_url)
                 break
-            except urllib2.HTTPError as e:
+            except requests.HTTPError as e:
                 retries -= 1
                 if retries == 0:
                     raise e
