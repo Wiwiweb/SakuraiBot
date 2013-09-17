@@ -423,19 +423,31 @@ class SakuraiBot:
         self.logger.info("Md5 updated.")
 
     def bot_cycle(self):
+        self.logger.debug("Entering get_new_miiverse_cookie()")
         miiverse_cookie = self.get_new_miiverse_cookie()
+        self.logger.debug("Entering get_miiverse_last_post()")
         post_url = self.get_miiverse_last_post(miiverse_cookie)
 
+        self.logger.debug("Entering is_new_post()")
         if self.is_new_post(post_url) or self.debug:
+            self.logger.debug("Entering get_current_pic_md5()")
             current_md5 = self.get_current_pic_md5()
+
+            self.logger.debug("Entering is_website_new()")
             if self.is_website_new(current_md5) or self.debug:
 
+                self.logger.debug("Entering get_info_from_post()")
                 post_details = self.get_info_from_post(post_url,
                                                        miiverse_cookie)
+
                 if post_details.is_picture_post():
+                    self.logger.debug("Entering upload_to_imgur()")
                     post_details.smashbros_pic = \
                         self.upload_to_imgur(post_details)
+                self.logger.debug("Entering post_to_reddit()")
                 self.post_to_reddit(post_details)
                 if not self.debug:
+                    self.logger.debug("Entering set_last_post()")
                     self.set_last_post(post_url)
+                    self.logger.debug("Entering update_md5()")
                     self.update_md5(current_md5)

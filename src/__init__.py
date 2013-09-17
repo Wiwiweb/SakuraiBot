@@ -117,6 +117,7 @@ if __name__ == '__main__':
             try:
                 logging.info("Starting the cycle again.")
                 sbot.bot_cycle()
+                logging.debug("End of cycle.")
                 if debug:  # Don't loop in debug
                     quit()
                 global_retries = 5
