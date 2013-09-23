@@ -10,18 +10,15 @@ import unittest
 import pep8
 import pep257
 import sakuraibot
-import urllib2
+import requests
 import uuid
 import praw
 import logging
 import sys
-from time import sleep
 from datetime import datetime
-from json import loads
 from shutil import copy
 from filecmp import cmp
 from os import remove, path
-from sys import modules
 
 USERNAME = 'SakuraiBot_test'
 SUBREDDIT = 'SakuraiBot_test'
@@ -197,25 +194,24 @@ class ImgurTests(unittest.TestCase):
         picture_url = self.sbot.upload_to_imgur(post_details)
         picture_id = picture_url[19:-4]
 
-        req = urllib2.Request('https://api.imgur.com/3/image/' + picture_id)
-        req.add_header("Authorization", "Client-ID " + IMGUR_CLIENT_ID)
-        json_resp = loads(urllib2.urlopen(req).read())
-        logging.debug("Image Json Response: " + str(json_resp))
-        id_json = json_resp['data']['id']
+        headers = {'Authorization': 'Client-ID ' + IMGUR_CLIENT_ID}
+        req = requests.get('https://api.imgur.com/3/image/' + picture_id,
+                           headers=headers)
+        logging.debug("Image Json Response: " + req.text)
+        id_json = req.json()['data']['id']
         self.assertEqual(picture_id, id_json)
-        title_json = json_resp['data']['title'].encode('utf-8')
+        title_json = req.json()['data']['title'].encode('utf-8')
         self.assertEqual(unique_text, title_json)
-        description_json = json_resp['data']['description']
+        description_json = req.json()['data']['description']
         self.assertIsNone(description_json)
 
-        req = urllib2.Request('https://api.imgur.com/3/album/'
-                              + IMGUR_ALBUM_ID)
-        req.add_header("Authorization", "Client-ID " + IMGUR_CLIENT_ID)
-        json_resp = loads(urllib2.urlopen(req).read())
-        logging.debug("Album Json Response: " + str(json_resp))
-        album_id_json = json_resp['data']['id']
+        headers = {'Authorization': 'Client-ID ' + IMGUR_CLIENT_ID}
+        req = requests.get('https://api.imgur.com/3/album/' + IMGUR_ALBUM_ID,
+                           headers=headers)
+        logging.debug("Album Json Response: " + req.text)
+        album_id_json = req.json()['data']['id']
         self.assertEqual(IMGUR_ALBUM_ID, album_id_json)
-        picture_id_json = json_resp['data']['images'][-1]['id']
+        picture_id_json = req.json()['data']['images'][-1]['id']
         self.assertEqual(picture_id, picture_id_json)
 
     def test_upload_to_imgur_long(self):
@@ -226,16 +222,16 @@ class ImgurTests(unittest.TestCase):
         picture_url = self.sbot.upload_to_imgur(post_details)
         picture_id = picture_url[19:-4]
 
-        req = urllib2.Request('https://api.imgur.com/3/image/' + picture_id)
-        req.add_header("Authorization", "Client-ID " + IMGUR_CLIENT_ID)
-        json_resp = loads(urllib2.urlopen(req).read())
-        logging.debug("Image Json Response: " + str(json_resp))
-        id_json = json_resp['data']['id']
+        headers = {'Authorization': 'Client-ID ' + IMGUR_CLIENT_ID}
+        req = requests.get('https://api.imgur.com/3/image/' + picture_id,
+                           headers=headers)
+        logging.debug("Image Json Response: " + req.text)
+        id_json = req.json()['data']['id']
         self.assertEqual(picture_id, id_json)
-        title_json = json_resp['data']['title'].encode('utf-8')
+        title_json = req.json()['data']['title'].encode('utf-8')
         alt_title = unique_text.rsplit(' ', 35)[0] + ' [...]'
         self.assertEqual(alt_title, title_json)
-        description_json = json_resp['data']['description'].encode('utf-8')
+        description_json = req.json()['data']['description'].encode('utf-8')
         self.assertEqual(unique_text, description_json)
 
 
