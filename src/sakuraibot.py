@@ -9,6 +9,7 @@ Author: Wiwiweb
 """
 
 from base64 import b64encode
+from configparser import ConfigParser
 from datetime import datetime
 import hashlib
 from logging import getLogger
@@ -19,22 +20,17 @@ from bs4 import BeautifulSoup
 import praw
 import requests
 
+CONFIG_FILE = "../cfg/config.ini"
+CONFIG_FILE_PRIVATE = "../cfg/config-private.ini"
+config = ConfigParser()
+config.read([CONFIG_FILE, CONFIG_FILE_PRIVATE])
 
-VERSION = "1.7"
+
+VERSION = "2.0"
 USER_AGENT = "SakuraiBot v" + VERSION + " by /u/Wiwiweb for /r/smashbros"
 
-REDDIT_PASSWORD_FILENAME = "../res/private/reddit-password.txt"
-MIIVERSE_PASSWORD_FILENAME = "../res/private/miiverse-password.txt"
-IMGUR_REFRESH_TOKEN_FILENAME = "../res/private/imgur-refresh-token.txt"
-IMGUR_CLIENT_SECRET_FILENAME = "../res/private/imgur-client-secret.txt"
 LAST_PICTURE_MD5_FILENAME = "../res/last-picture-md5.txt"
 SAKURAI_BABBLES_FILENAME = "../res/sakurai-babbles.txt"
-
-IMGUR_CLIENT_ID = '45b2e3810d7d550'
-
-ID_FLAIR_SSB4 = 'd31a17da-d4ad-11e2-a21c-12313d2c1c24'
-
-MIIVERSE_USERNAME = 'Wiwiweb'
 
 MIIVERSE_URL = "https://miiverse.nintendo.net"
 MIIVERSE_CALLBACK_URL = "https://miiverse.nintendo.net/auth/callback"
@@ -46,22 +42,6 @@ NINTENDO_LOGIN_PAGE = "https://id.nintendo.net/oauth/authorize"
 
 REDDIT_TITLE_LIMIT = 300
 IMGUR_TITLE_LIMIT = 128
-
-f = open(REDDIT_PASSWORD_FILENAME, 'r')
-reddit_password = f.read().strip()
-f.close()
-
-f = open(IMGUR_REFRESH_TOKEN_FILENAME, 'r')
-imgur_token = f.read().strip()
-f.close()
-
-f = open(IMGUR_CLIENT_SECRET_FILENAME, 'r')
-imgur_secret = f.read().strip()
-f.close()
-
-f = open(MIIVERSE_PASSWORD_FILENAME, 'r')
-miiverse_password = f.read().strip()
-f.close()
 
 f = open(SAKURAI_BABBLES_FILENAME, 'r')
 sakurai_babbles = []
@@ -108,8 +88,9 @@ class SakuraiBot:
         parameters = {'client_id': 'ead88d8d450f40ada5682060a8885ec0',
                       'response_type': 'code',
                       'redirect_uri': MIIVERSE_CALLBACK_URL,
-                      'username': MIIVERSE_USERNAME,
-                      'password': miiverse_password}
+                      'username': config['Miiverse']['username'],
+                      'password': config['Passwords']['miiverse']}
+        self.logger.debug("Parameters: " + str(parameters))
         req = requests.post(NINTENDO_LOGIN_PAGE, data=parameters)
         miiverse_cookie = req.history[1].cookies['ms']
         if miiverse_cookie is None:
@@ -229,9 +210,11 @@ class SakuraiBot:
         imgur_access_token = ''
         while True:
             try:
-                parameters = {'refresh_token': imgur_token,
-                              'client_id': IMGUR_CLIENT_ID,
-                              'client_secret': imgur_secret,
+                parameters = {'refresh_token':
+                              config['Passwords']['imgur_refresh_token'],
+                              'client_id': config['Imgur']['client_id'],
+                              'client_secret':
+                              config['Passwords']['imgur_client_secret'],
                               'grant_type': 'refresh_token'}
                 self.logger.debug("Token request parameters: "
                                   + str(parameters))
@@ -297,7 +280,7 @@ class SakuraiBot:
     def post_to_reddit(self, post_details):
         """Post the Miiverse post to subreddit and returns the submission."""
         r = praw.Reddit(user_agent=USER_AGENT)
-        r.login(self.username, reddit_password)
+        r.login(self.username, config['Passwords']['reddit'])
         self.logger.info("Logged into Reddit.")
 
         date = datetime.now().strftime('%y-%m-%d')
@@ -403,7 +386,7 @@ class SakuraiBot:
                 self.logger.info("No comment posted.")
 
         # Adding flair
-        r.select_flair(submission, ID_FLAIR_SSB4)
+        r.select_flair(submission, config['Reddit']['ssb4_flair'])
         self.logger.info("Tagged as SSB4.")
 
         return r.get_submission(submission_id=submission.id, comment_limit=1)

@@ -7,6 +7,7 @@ Author: Wiwiweb
 
 """
 
+from configparser import ConfigParser
 import logging
 import smtplib
 import sys
@@ -18,22 +19,11 @@ import requests
 from .sakuraibot import SakuraiBot
 
 
-FREQUENCY = 300
+CONFIG_FILE = "../cfg/config.ini"
+CONFIG_FILE_PRIVATE = "../cfg/config-private.ini"
+config = ConfigParser()
+config.read([CONFIG_FILE, CONFIG_FILE_PRIVATE])
 
-LOG_FILE = "../logs/sakuraibot.log"
-LOG_FILE_DEBUG = "../logs/sakuraibot-debug.log"
-LAST_POST_FILENAME = "../res/last-post.txt"
-EXTRA_COMMENT_FILENAME = "../res/extra-comment.txt"
-PICTURE_MD5_FILENAME = "../res/last-picture-md5.txt"
-
-MAIL_ADDRESS = "sakuraibotalert@gmail.com"
-SENDER_MAIL_ADDRESS = "sakuraibotalert@gmail.com"
-SMTP_HOST = "smtp.gmail.com:587"
-MAIL_PASSWORD_FILENAME = "../res/private/mail-password.txt"
-
-f = open(MAIL_PASSWORD_FILENAME, 'r')
-mail_password = f.read().strip()
-f.close()
 
 # -------------------------------------------------
 # Main loop
@@ -41,14 +31,14 @@ f.close()
 
 if len(sys.argv) > 1 and '--debug' in sys.argv:
     debug = True
-    username = 'SakuraiBot_test'
-    subreddit = 'SakuraiBot_test'
-    imgur_album_id = 'ugL4N'
+    username = config['Reddit']['test_username']
+    subreddit = config['Reddit']['test_subreddit']
+    imgur_album_id = config['Imgur']['test_album_id']
 else:
     debug = False
-    username = 'SakuraiBot'
-    subreddit = 'smashbros'
-    imgur_album_id = '8KnTr'
+    username = config['Reddit']['username']
+    subreddit = config['Reddit']['subreddit']
+    imgur_album_id = config['Imgur']['album_id']
 
 root_logger = logging.getLogger()
 if debug:
@@ -56,10 +46,12 @@ if debug:
                         format='%(asctime)s: %(message)s')
 else:
     # Logging
-    timed_handler = TimedRotatingFileHandler(LOG_FILE, 'midnight')
+    timed_handler = TimedRotatingFileHandler(config['Files']['logfile'],
+                                             'midnight')
     timed_handler.setFormatter(logging.Formatter('%(asctime)s: %(message)s'))
     timed_handler.setLevel(logging.INFO)
-    debug_handler = RotatingFileHandler(LOG_FILE_DEBUG, maxBytes=102400,
+    debug_handler = RotatingFileHandler(config['Files']['debug_logfile'],
+                                        maxBytes=102400,
                                         backupCount=1)
     debug_handler.setFormatter(logging.Formatter('%(asctime)s: %(message)s'))
     debug_handler.setLevel(logging.DEBUG)
@@ -76,19 +68,22 @@ else:
 
 
 def send_alert_mail():
-    message = ("From: Script Alert: SakuraiBot <" + MAIL_ADDRESS + ">\n" +
+    message = ("From: Script Alert: SakuraiBot <" +
+               config['Mail']['sender_address'] + ">\n" +
                "Subject: SakuraiBot stopped unexpectedly!\n\n")
-    f = open(LOG_FILE_DEBUG, 'r')
+    f = open(config['Files']['debug_logfile'], 'r')
     log_content = f.read()
     f.close()
     message += log_content
     try:
-        smtp = smtplib.SMTP(SMTP_HOST)
+        smtp = smtplib.SMTP(config['Mail']['smtp_host'])
         smtp.starttls()
-        logging.debug(MAIL_ADDRESS)
-        logging.debug(mail_password)
-        smtp.login(MAIL_ADDRESS, mail_password)
-        smtp.sendmail(MAIL_ADDRESS, MAIL_ADDRESS, message)
+        logging.debug(config['Mail']['sender_address'])
+        logging.debug(config['Passwords']['mail'])
+        smtp.login(config['Mail']['sender_address'],
+                   config['Passwords']['mail'])
+        smtp.sendmail(config['Mail']['sender_address'],
+                      config['Mail']['address'], message)
         logging.info("Alert email sent.")
     except smtplib.SMTPException as e:
         logging.error("ERROR: Couldn't send alert email: " + str(e))
@@ -112,8 +107,9 @@ def retry_or_die(dont_retry):
 if __name__ == '__main__':
     logging.info("--- Starting sakuraibot ---")
     sbot = SakuraiBot(username, subreddit, imgur_album_id,
-                      LAST_POST_FILENAME, EXTRA_COMMENT_FILENAME,
-                      PICTURE_MD5_FILENAME,
+                      config['Files']['last_post'],
+                      config['Files']['extra_comment'],
+                      config['Files']['picture_md5'],
                       debug=debug)
     try:
         while True:
@@ -135,7 +131,7 @@ if __name__ == '__main__':
                 logging.exception("ERROR: Unknown error: " + str(e))
                 retry_or_die(sbot.dont_retry)
 
-            sleep(FREQUENCY)
+            sleep(config['Main']['frequency'])
 
     except KeyboardInterrupt:
         logging.info("Keyboard interrupt detected, shutting down Sakuraibot.")

@@ -8,12 +8,13 @@ Author: Wiwiweb
 
 """
 
-import logging
-import sys
+from configparser import ConfigParser
 from datetime import datetime
 from filecmp import cmp
+import logging
 from os import remove
 from shutil import copy
+import sys
 
 import praw
 import unittest
@@ -24,10 +25,12 @@ from uuid import uuid4
 
 import sakuraibot
 
+CONFIG_FILE = "../cfg/config.ini"
+CONFIG_FILE_PRIVATE = "../cfg/config-private.ini"
+config = ConfigParser()
+config.read([CONFIG_FILE, CONFIG_FILE_PRIVATE])
 
-USERNAME = 'SakuraiBot_test'
-SUBREDDIT = 'SakuraiBot_test'
-IMGUR_ALBUM_ID = 'ugL4N'
+
 USER_AGENT = "SakuraiBot test suite"
 
 REDDIT_PASSWORD_FILENAME = '../res/private/reddit-password.txt'
@@ -35,7 +38,6 @@ LAST_POST_FILENAME = 'last-post.txt'
 EXTRA_COMMENT_FILENAME = 'extra-comment.txt'
 PICTURE_MD5_FILENAME = 'last-picture-md5.txt'
 IMGUR_CLIENT_ID = '45b2e3810d7d550'
-REDDIT_PASSWORD = sakuraibot.reddit_password
 
 logging.basicConfig(stream=sys.stdout, level=logging.DEBUG,
                     format='%(asctime)s: %(message)s')
@@ -64,7 +66,9 @@ class CodeFormatTests(unittest.TestCase):
 
 class BasicTests(unittest.TestCase):
     def setUp(self):
-        self.sbot = sakuraibot.SakuraiBot(USERNAME, SUBREDDIT, IMGUR_ALBUM_ID,
+        self.sbot = sakuraibot.SakuraiBot(config['Reddit']['test_username'],
+                                          config['Reddit']['test_subreddit'],
+                                          config['Imgur']['test_album_id'],
                                           LAST_POST_FILENAME,
                                           EXTRA_COMMENT_FILENAME,
                                           PICTURE_MD5_FILENAME,
@@ -118,7 +122,9 @@ class BasicTests(unittest.TestCase):
 
 class MiiverseTests(unittest.TestCase):
     def setUp(self):
-        self.sbot = sakuraibot.SakuraiBot(USERNAME, SUBREDDIT, IMGUR_ALBUM_ID,
+        self.sbot = sakuraibot.SakuraiBot(config['Reddit']['test_username'],
+                                          config['Reddit']['test_subreddit'],
+                                          config['Imgur']['test_album_id'],
                                           LAST_POST_FILENAME,
                                           EXTRA_COMMENT_FILENAME,
                                           PICTURE_MD5_FILENAME,
@@ -185,7 +191,9 @@ class MiiverseTests(unittest.TestCase):
 
 class ImgurTests(unittest.TestCase):
     def setUp(self):
-        self.sbot = sakuraibot.SakuraiBot(USERNAME, SUBREDDIT, IMGUR_ALBUM_ID,
+        self.sbot = sakuraibot.SakuraiBot(config['Reddit']['test_username'],
+                                          config['Reddit']['test_subreddit'],
+                                          config['Imgur']['test_album_id'],
                                           LAST_POST_FILENAME,
                                           EXTRA_COMMENT_FILENAME,
                                           PICTURE_MD5_FILENAME,
@@ -211,11 +219,12 @@ class ImgurTests(unittest.TestCase):
         self.assertIsNone(description_json)
 
         headers = {'Authorization': 'Client-ID ' + IMGUR_CLIENT_ID}
-        req = requests.get('https://api.imgur.com/3/album/' + IMGUR_ALBUM_ID,
+        req = requests.get('https://api.imgur.com/3/album/' +
+                           config['Imgur']['test_album_id'],
                            headers=headers)
         logging.debug("Album Json Response: " + req.text)
         album_id_json = req.json()['data']['id']
-        self.assertEqual(IMGUR_ALBUM_ID, album_id_json)
+        self.assertEqual(config['Imgur']['test_album_id'], album_id_json)
         picture_id_json = req.json()['data']['images'][-1]['id']
         self.assertEqual(picture_id, picture_id_json)
 
@@ -241,14 +250,18 @@ class ImgurTests(unittest.TestCase):
 
 class RedditTests(unittest.TestCase):
     def setUp(self):
-        self.sbot = sakuraibot.SakuraiBot(USERNAME, SUBREDDIT, IMGUR_ALBUM_ID,
+        self.sbot = sakuraibot.SakuraiBot(config['Reddit']['test_username'],
+                                          config['Reddit']['test_subreddit'],
+                                          config['Imgur']['test_album_id'],
                                           LAST_POST_FILENAME,
                                           EXTRA_COMMENT_FILENAME,
                                           PICTURE_MD5_FILENAME,
                                           debug=True)
         self.r = praw.Reddit(user_agent=USER_AGENT)
-        self.r.login(USERNAME, REDDIT_PASSWORD)
-        self.subreddit = self.r.get_subreddit(SUBREDDIT)
+        self.r.login(config['Reddit']['test_username'],
+                     config['Passwords']['reddit'])
+        self.subreddit = self.r.get_subreddit(
+            config['Reddit']['test_subreddit'])
         self.r.config.cache_timeout = 0
 
     def test_post_to_reddit_text(self):
@@ -345,7 +358,9 @@ class RedditTests(unittest.TestCase):
 
 class CompleteTests(unittest.TestCase):
     def setUp(self):
-        self.sbot = sakuraibot.SakuraiBot(USERNAME, SUBREDDIT, IMGUR_ALBUM_ID,
+        self.sbot = sakuraibot.SakuraiBot(config['Reddit']['test_username'],
+                                          config['Reddit']['test_subreddit'],
+                                          config['Imgur']['test_album_id'],
                                           LAST_POST_FILENAME,
                                           EXTRA_COMMENT_FILENAME,
                                           PICTURE_MD5_FILENAME,
