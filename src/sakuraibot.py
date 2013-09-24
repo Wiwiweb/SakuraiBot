@@ -8,18 +8,19 @@ Author: Wiwiweb
 
 """
 
-import base64
-import hashlib
+from base64 import b64encode
 from datetime import datetime
-from bs4 import BeautifulSoup
+import hashlib
 from logging import getLogger
 from random import randint
 from time import sleep
 
+from bs4 import BeautifulSoup
 import praw
 import requests
 
-VERSION = "1.6"
+
+VERSION = "1.7"
 USER_AGENT = "SakuraiBot v" + VERSION + " by /u/Wiwiweb for /r/smashbros"
 
 REDDIT_PASSWORD_FILENAME = "../res/private/reddit-password.txt"
@@ -219,7 +220,7 @@ class SakuraiBot:
         # We could send the url to imgur directly
         # but sometimes imgur will not see the same image
         req = requests.get(SMASH_DAILY_PIC)
-        pic_base64 = base64.b64encode(req.content)
+        pic_base64 = b64encode(req.content)
 
         retries = 5
         picture_url = ''

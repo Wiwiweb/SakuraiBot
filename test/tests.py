@@ -20,7 +20,7 @@ import unittest
 import pep8
 import pep257
 import requests
-import uuid
+from uuid import uuid4
 
 import sakuraibot
 
@@ -193,7 +193,7 @@ class ImgurTests(unittest.TestCase):
         self.picture = 'http://i.imgur.com/uQIRrD2.gif'
 
     def test_upload_to_imgur(self):
-        unique_text = str(uuid.uuid4()) + unicode_text
+        unique_text = str(uuid4()) + unicode_text
         post_details = sakuraibot.PostDetails('Pug', unique_text,
                                               self.picture, None, None)
         picture_url = self.sbot.upload_to_imgur(post_details)
@@ -220,7 +220,7 @@ class ImgurTests(unittest.TestCase):
         self.assertEqual(picture_id, picture_id_json)
 
     def test_upload_to_imgur_long(self):
-        unique_text = str(uuid.uuid4()) + unicode_text + long_text
+        unique_text = str(uuid4()) + unicode_text + long_text
         post_details = sakuraibot.PostDetails('Pug', unique_text,
                                               self.picture, None, None)
         picture_url = self.sbot.upload_to_imgur(post_details)
@@ -252,7 +252,7 @@ class RedditTests(unittest.TestCase):
         self.r.config.cache_timeout = 0
 
     def test_post_to_reddit_text(self):
-        unique_text = 'Text test: ' + str(uuid.uuid4()) + \
+        unique_text = 'Text test: ' + str(uuid4()) + \
                       unicode_text
         post_details = sakuraibot.PostDetails('Pug', unique_text,
                                               None, None, None)
@@ -268,7 +268,7 @@ class RedditTests(unittest.TestCase):
         #TODO test comment
 
     def test_post_to_reddit_text_long(self):
-        unique_text = 'Long text test: ' + str(uuid.uuid4()) + \
+        unique_text = 'Long text test: ' + str(uuid4()) + \
                       unicode_text + long_text
         post_details = sakuraibot.PostDetails('Pug', unique_text,
                                               None, None, None)
@@ -285,7 +285,7 @@ class RedditTests(unittest.TestCase):
         #TODO test comment
 
     def test_post_to_reddit_picture(self):
-        unique = uuid.uuid4()
+        unique = uuid4()
         picture = 'http://i.imgur.com/uQIRrD2.gif?unique=' + str(unique)
         unique_text = 'Picture test: ' + str(unique) + \
                       unicode_text
@@ -303,7 +303,7 @@ class RedditTests(unittest.TestCase):
         #TODO test comment
 
     def test_post_to_reddit_picture_long(self):
-        unique = uuid.uuid4()
+        unique = uuid4()
         picture = 'http://i.imgur.com/uQIRrD2.gif?unique=' + str(unique)
         unique_text = 'Long Picture test: ' + str(unique) + \
                       unicode_text + long_text
@@ -324,7 +324,7 @@ class RedditTests(unittest.TestCase):
         self.assertTrue(unique_text in comment)
 
     def test_post_to_reddit_video(self):
-        unique = uuid.uuid4()
+        unique = uuid4()
         video = 'http://www.youtube.com/watch?v=7anpvGqQxwI?unique=' \
                 + str(unique)
         unique_text = 'Video test: ' + str(unique) + \
