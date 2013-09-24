@@ -1,20 +1,22 @@
 #!/usr/bin/env python3
 
+from configparser import ConfigParser
 import logging
 from logging.handlers import RotatingFileHandler
 import smtplib
 import subprocess
 from time import sleep
 
+
 LOG_FILE_DEBUG = "../logs/statuscheck.log"
 MAIL_ADDRESS = "sakuraibotalert@gmail.com"
 SENDER_MAIL_ADDRESS = "sakuraibotalert@gmail.com"
 SMTP_HOST = "smtp.gmail.com:587"
-MAIL_PASSWORD_FILENAME = "../res/private/mail-password.txt"
 
-f = open(MAIL_PASSWORD_FILENAME, 'r')
-mail_password = f.read().strip()
-f.close()
+CONFIG_FILE = "../cfg/config.ini"
+CONFIG_FILE_PRIVATE = "../cfg/config-private.ini"
+config = ConfigParser()
+config.read([CONFIG_FILE, CONFIG_FILE_PRIVATE])
 
 root_logger = logging.getLogger()
 debug_handler = RotatingFileHandler(LOG_FILE_DEBUG, maxBytes=102400,
@@ -37,8 +39,8 @@ def send_alert_mail():
         smtp = smtplib.SMTP(SMTP_HOST)
         smtp.starttls()
         logging.debug(MAIL_ADDRESS)
-        logging.debug(mail_password)
-        smtp.login(MAIL_ADDRESS, mail_password)
+        logging.debug(config['Passwords']['mail'])
+        smtp.login(MAIL_ADDRESS, config['Passwords']['mail'])
         smtp.sendmail(MAIL_ADDRESS, MAIL_ADDRESS, message)
         logging.info("Alert email sent.")
     except smtplib.SMTPException as e:
