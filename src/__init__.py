@@ -1,16 +1,16 @@
 #!/usr/bin/python
 """
+Initialises and runs the bot in a loop.
+
 Created on 2013-07-24
 Author: Wiwiweb
 
-Initialises and runs the bot in a loop.
-
 """
+import requests
 
-from sakuraibot import SakuraiBot
+from .sakuraibot import SakuraiBot
 import logging
 import sys
-import urllib2
 import smtplib
 from logging.handlers import TimedRotatingFileHandler, RotatingFileHandler
 from time import sleep
@@ -123,12 +123,10 @@ if __name__ == '__main__':
                 global_retries = 5
                 sbot.dont_retry = False
 
-            except urllib2.HTTPError as e:
-                logging.exception("ERROR: HTTPError code " + str(e.code) +
-                                  " encountered while making request.")
-                retry_or_die(sbot.dont_retry)
-            except urllib2.URLError as e:
-                logging.exception("ERROR: URLError: " + str(e.reason))
+            except requests.HTTPError as e:
+                logging.exception(
+                    "ERROR: HTTPError code " + str(e.response.status_code) +
+                    " encountered while making request.")
                 retry_or_die(sbot.dont_retry)
             except Exception as e:
                 logging.exception("ERROR: Unknown error: " + str(e))

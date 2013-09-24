@@ -1,10 +1,12 @@
 #!/usr/bin/python
-'''
+"""
+SakuraiBot test suite.
+
+Uses a test subreddit and a test user.
 Created on 2013-07-17
 Author: Wiwiweb
 
-SakuraiBot test suite
-'''
+"""
 
 import unittest
 import pep8
@@ -18,7 +20,7 @@ import sys
 from datetime import datetime
 from shutil import copy
 from filecmp import cmp
-from os import remove, path
+from os import remove
 
 USERNAME = 'SakuraiBot_test'
 SUBREDDIT = 'SakuraiBot_test'
@@ -35,13 +37,13 @@ REDDIT_PASSWORD = sakuraibot.reddit_password
 logging.basicConfig(stream=sys.stdout, level=logging.DEBUG,
                     format='%(asctime)s: %(message)s')
 
-unicode_text = u' No \u0CA0_\u0CA0 ;' \
-               u' Yes \u0CA0\u203F\u0CA0 \u2026'
+unicode_text = ' No \u0CA0_\u0CA0 ;' \
+               ' Yes \u0CA0\u203F\u0CA0 \u2026'
 long_text = \
-    u'. By the way this text is very very very very very very very ' \
-    u'very very very very very very very very very very very very ' \
-    u'very very very very very very very very very very very very ' \
-    u'very very very very very very very very very very very long.'
+    '. By the way this text is very very very very very very very ' \
+    'very very very very very very very very very very very very ' \
+    'very very very very very very very very very very very very ' \
+    'very very very very very very very very very very very long.'
 
 
 class CodeFormatTests(unittest.TestCase):
@@ -85,6 +87,7 @@ class BasicTests(unittest.TestCase):
 
     def test_is_website_new_yes(self):
         md5 = '3c0cb77a45b1215d9d4ef6cda0d89959'
+        self.assertTrue(self.sbot.is_website_new(md5))
 
     def test_is_website_new_no(self):
         md5 = 'ea29d1e00c26ccd3088263f5340be961'
@@ -131,7 +134,7 @@ class MiiverseTests(unittest.TestCase):
                 "From now on, I'll be posting on Miiverse, "
                 "so I hope you'll look forward to my posts.\r\n"
                 "Please note that I won't be able to answer any questions.")
-        text = unicode(text)
+        text = str(text)
         info = self.sbot.get_info_from_post(url, self.cookie)
         self.assertTrue(info.is_text_post())
         self.assertEqual(info.author, 'Sakurai')
@@ -144,8 +147,8 @@ class MiiverseTests(unittest.TestCase):
 
     def test_get_info_from_post_picture(self):
         url = '/posts/AYMHAAABAABtUV58IEIGrA'
-        text = unicode("Mega Man 2 seems to be the most popular,"
-                       " so many of his moves are from that game.")
+        text = str("Mega Man 2 seems to be the most popular,"
+                   " so many of his moves are from that game.")
         picture = 'https://d3esbfg30x759i.cloudfront.net/ss/zlCfzRAybhUAGnxAWi'
 
         info = self.sbot.get_info_from_post(url, self.cookie)
@@ -163,7 +166,7 @@ class MiiverseTests(unittest.TestCase):
         text = ("The long-awaited super robot Mega Man joins the battle!\r\n"
                 "He fights using the various weapons"
                 " he acquired from bosses in past games.")
-        text = unicode(text)
+        text = str(text)
         video = 'http://www.youtube.com/watch?v=aX2KNyaoNV4'
 
         info = self.sbot.get_info_from_post(url, self.cookie)
@@ -187,8 +190,7 @@ class ImgurTests(unittest.TestCase):
         self.picture = 'http://i.imgur.com/uQIRrD2.gif'
 
     def test_upload_to_imgur(self):
-        unique_text = unicode(uuid.uuid4()) + unicode_text
-        unique_text = unique_text.encode('utf-8')
+        unique_text = str(uuid.uuid4()) + unicode_text
         post_details = sakuraibot.PostDetails('Pug', unique_text,
                                               self.picture, None, None)
         picture_url = self.sbot.upload_to_imgur(post_details)
@@ -200,7 +202,7 @@ class ImgurTests(unittest.TestCase):
         logging.debug("Image Json Response: " + req.text)
         id_json = req.json()['data']['id']
         self.assertEqual(picture_id, id_json)
-        title_json = req.json()['data']['title'].encode('utf-8')
+        title_json = req.json()['data']['title']
         self.assertEqual(unique_text, title_json)
         description_json = req.json()['data']['description']
         self.assertIsNone(description_json)
@@ -215,8 +217,7 @@ class ImgurTests(unittest.TestCase):
         self.assertEqual(picture_id, picture_id_json)
 
     def test_upload_to_imgur_long(self):
-        unique_text = unicode(uuid.uuid4()) + unicode_text + long_text
-        unique_text = unique_text.encode('utf-8')
+        unique_text = str(uuid.uuid4()) + unicode_text + long_text
         post_details = sakuraibot.PostDetails('Pug', unique_text,
                                               self.picture, None, None)
         picture_url = self.sbot.upload_to_imgur(post_details)
@@ -228,10 +229,10 @@ class ImgurTests(unittest.TestCase):
         logging.debug("Image Json Response: " + req.text)
         id_json = req.json()['data']['id']
         self.assertEqual(picture_id, id_json)
-        title_json = req.json()['data']['title'].encode('utf-8')
+        title_json = req.json()['data']['title']
         alt_title = unique_text.rsplit(' ', 35)[0] + ' [...]'
         self.assertEqual(alt_title, title_json)
-        description_json = req.json()['data']['description'].encode('utf-8')
+        description_json = req.json()['data']['description']
         self.assertEqual(unique_text, description_json)
 
 
@@ -248,98 +249,93 @@ class RedditTests(unittest.TestCase):
         self.r.config.cache_timeout = 0
 
     def test_post_to_reddit_text(self):
-        unique_text = u'Text test: ' + unicode(uuid.uuid4()) + \
+        unique_text = 'Text test: ' + str(uuid.uuid4()) + \
                       unicode_text
-        unique_text = unique_text.encode('utf-8')
         post_details = sakuraibot.PostDetails('Pug', unique_text,
                                               None, None, None)
         submission = self.sbot.post_to_reddit(post_details)
         self.assertEquals(submission,
-                          self.subreddit.get_new(limit=1).next())
+                          next(self.subreddit.get_new(limit=1)))
         self.assertEquals(submission,
-                          self.r.user.get_submitted(limit=1).next())
+                          next(self.r.user.get_submitted(limit=1)))
         date = datetime.now().strftime('%y-%m-%d')
         title = 'New Pug post! (' + date + ') "' \
                 + unique_text + '" (No picture)'
-        self.assertEquals(title, submission.title.encode('utf-8'))
+        self.assertEquals(title, submission.title)
         #TODO test comment
 
     def test_post_to_reddit_text_long(self):
-        unique_text = u'Long text test: ' + unicode(uuid.uuid4()) + \
+        unique_text = 'Long text test: ' + str(uuid.uuid4()) + \
                       unicode_text + long_text
-        unique_text = unique_text.encode('utf-8')
         post_details = sakuraibot.PostDetails('Pug', unique_text,
                                               None, None, None)
         submission = self.sbot.post_to_reddit(post_details)
         self.assertEquals(submission,
-                          self.subreddit.get_new(limit=1).next())
+                          next(self.subreddit.get_new(limit=1)))
         self.assertEquals(submission,
-                          self.r.user.get_submitted(limit=1).next())
+                          next(self.r.user.get_submitted(limit=1)))
         date = datetime.now().strftime('%y-%m-%d')
         title = 'New Pug post! (' + date + ') "' + \
                 unique_text.rsplit(' ', 17)[0] + \
                 ' [...]" (Text too long! See post) (No picture)'
-        self.assertEquals(title, submission.title.encode('utf-8'))
+        self.assertEquals(title, submission.title)
         #TODO test comment
 
     def test_post_to_reddit_picture(self):
         unique = uuid.uuid4()
         picture = 'http://i.imgur.com/uQIRrD2.gif?unique=' + str(unique)
-        unique_text = u'Picture test: ' + unicode(unique) + \
+        unique_text = 'Picture test: ' + str(unique) + \
                       unicode_text
-        unique_text = unique_text.encode('utf-8')
         post_details = sakuraibot.PostDetails('Pug', unique_text,
                                               picture, None, picture)
         submission = self.sbot.post_to_reddit(post_details)
         self.assertEquals(submission,
-                          self.subreddit.get_new(limit=1).next())
+                          next(self.subreddit.get_new(limit=1)))
         self.assertEquals(submission,
-                          self.r.user.get_submitted(limit=1).next())
+                          next(self.r.user.get_submitted(limit=1)))
         date = datetime.now().strftime('%y-%m-%d')
         title = 'New Pug picture! (' + date + ') "' + unique_text + '"'
-        self.assertEquals(title, submission.title.encode('utf-8'))
+        self.assertEquals(title, submission.title)
         self.assertEquals(picture, submission.url)
         #TODO test comment
 
     def test_post_to_reddit_picture_long(self):
         unique = uuid.uuid4()
         picture = 'http://i.imgur.com/uQIRrD2.gif?unique=' + str(unique)
-        unique_text = u'Long Picture test: ' + unicode(unique) + \
+        unique_text = 'Long Picture test: ' + str(unique) + \
                       unicode_text + long_text
-        unique_text = unique_text.encode('utf-8')
         post_details = sakuraibot.PostDetails('Pug', unique_text,
                                               picture, None, picture)
         submission = self.sbot.post_to_reddit(post_details)
         self.assertEquals(submission,
-                          self.subreddit.get_new(limit=1).next())
+                          next(self.subreddit.get_new(limit=1)))
         self.assertEquals(submission,
-                          self.r.user.get_submitted(limit=1).next())
+                          next(self.r.user.get_submitted(limit=1)))
         date = datetime.now().strftime('%y-%m-%d')
         title = 'New Pug picture! (' + date + ') "' + \
                 unique_text.rsplit(' ', 16)[0] + \
                 ' [...]" (Text too long! See comment)'
-        self.assertEquals(title, submission.title.encode('utf-8'))
+        self.assertEquals(title, submission.title)
         self.assertEquals(picture, submission.url)
-        comment = submission.comments[0].body.encode('utf-8')
+        comment = submission.comments[0].body
         self.assertTrue(unique_text in comment)
 
     def test_post_to_reddit_video(self):
         unique = uuid.uuid4()
         video = 'http://www.youtube.com/watch?v=7anpvGqQxwI?unique=' \
                 + str(unique)
-        unique_text = u'Video test: ' + unicode(unique) + \
+        unique_text = 'Video test: ' + str(unique) + \
                       unicode_text
-        unique_text = unique_text.encode('utf-8')
         post_details = sakuraibot.PostDetails('Pug', unique_text,
                                               None, video, None)
         submission = self.sbot.post_to_reddit(post_details)
         self.assertEquals(submission,
-                          self.subreddit.get_new(limit=1).next())
+                          next(self.subreddit.get_new(limit=1)))
         self.assertEquals(submission,
-                          self.r.user.get_submitted(limit=1).next())
+                          next(self.r.user.get_submitted(limit=1)))
         date = datetime.now().strftime('%y-%m-%d')
         title = 'New Pug video! (' + date + ') "' + unique_text + '"'
-        self.assertEquals(title, submission.title.encode('utf-8'))
+        self.assertEquals(title, submission.title)
         self.assertEquals(video, submission.url)
         #TODO test comment
 

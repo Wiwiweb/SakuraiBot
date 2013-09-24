@@ -1,12 +1,11 @@
 #!/usr/bin/python
 """
+Main functions of the Reddit bot.
+
+Fetches Miiverse posts by Smash Bros creator Sakurai.
 Created on 2013-06-14
 Author: Wiwiweb
 
-Reddit bot to fetch Miiverse posts by Smash Bros creator Sakurai.
-
-Some parts inspired by reddit-xkcdbot's source code.
-https://github.com/trisweb/reddit-xkcdbot
 """
 
 import praw
@@ -166,10 +165,9 @@ class SakuraiBot:
 
     def is_website_new(self, current_md5):
         """Compare the smashbros pic md5 to the last md5 posted."""
-        f = open(self.picture_md5_filename, 'a+')
+        f = open(self.picture_md5_filename, 'r')
         last_md5 = f.read().strip()
         f.close()
-        self.logger.debug("Last pic md5: " + last_md5)
 
         if current_md5 == last_md5:
             self.logger.info("Same website picture as before.")
@@ -185,14 +183,12 @@ class SakuraiBot:
         soup = BeautifulSoup(req.text)
 
         author = soup.find('p', {'class': 'user-name'}).find('a').get_text()
-        author = author.encode('utf-8')
         self.logger.info("Post author: " + author)
 
         text = soup.find('p', {'class': 'post-content-text'}) \
             .get_text().strip()
-        text = text.encode('utf-8')
         self.logger.debug("Text of type: " + str(type(text)))
-        self.logger.info("Post text: " + str(text))
+        self.logger.info("Post text: " + text)
 
         screenshot_container = soup.find('div',
                                          {'class': 'screenshot-container'})
@@ -225,8 +221,10 @@ class SakuraiBot:
         pic_base64 = base64.b64encode(req.content)
 
         retries = 5
+        picture_url = ''
 
         # Request new access token
+        imgur_access_token = ''
         while True:
             try:
                 parameters = {'refresh_token': imgur_token,
@@ -243,9 +241,10 @@ class SakuraiBot:
                 if retries == 0:
                     raise
                 else:
-                    self.logger.error("ERROR: HTTPError: " + str(e.reason) +
-                                      ". Retrying imgur upload" + retries +
-                                      " more times.")
+                    self.logger.error(
+                        "ERROR: HTTPError: " + str(e.response.status_code) +
+                        ". Retrying imgur upload" + retries +
+                        " more times.")
                     sleep(2)
                     continue
 
@@ -254,10 +253,10 @@ class SakuraiBot:
             try:
                 title = post_details.text
                 description = ''
-                if len(title.decode('utf-8')) > IMGUR_TITLE_LIMIT:
+                if len(title) > IMGUR_TITLE_LIMIT:
                     too_long = ' [...]'
                     allowed_text_length = IMGUR_TITLE_LIMIT - len(too_long)
-                    while len(title.decode('utf-8')) > allowed_text_length:
+                    while len(title) > allowed_text_length:
                         title = title.rsplit(' ', 1)[0]  # Remove last word
                     title += too_long
                     description = post_details.text
@@ -280,8 +279,9 @@ class SakuraiBot:
                 if retries == 0:
                     raise e
                 else:
-                    self.logger.error("ERROR: HTTPError: " + str(e.reason) +
-                                      ". Retrying.")
+                    self.logger.error(
+                        "ERROR: HTTPError: " + str(e.response.status_code) +
+                        ". Retrying.")
                     sleep(2)
                     continue
 
@@ -326,9 +326,9 @@ class SakuraiBot:
         title = title_format.format(type=post_type, text=text, extra=extra)
         self.logger.debug("Title: " + title)
         self.logger.debug("Title length: " + str(len(title)))
-        self.logger.debug("Decoded title length : " +
-                          str(len(title.decode('utf-8'))))
-        if len(title.decode('utf-8')) > REDDIT_TITLE_LIMIT:
+        self.logger.debug("Encoded title length : " +
+                          str(len(title.encode('utf-8'))))
+        if len(title) > REDDIT_TITLE_LIMIT:
             if text_post:
                 too_long_type = "post"
             else:
@@ -336,10 +336,10 @@ class SakuraiBot:
             too_long = ' [...]" (Text too long! See {})'.format(too_long_type)
 
             allowed_text_length = \
-                len(text.decode('utf-8')) \
-                - (len(title.decode('utf-8')) - REDDIT_TITLE_LIMIT) \
+                len(text) \
+                - (len(title) - REDDIT_TITLE_LIMIT) \
                 - len(too_long)
-            while len(text.decode('utf-8')) > allowed_text_length:
+            while len(text) > allowed_text_length:
                 text = text.rsplit(' ', 1)[0]  # Remove last word
             text += too_long
             title = title_format.format(type=post_type,
