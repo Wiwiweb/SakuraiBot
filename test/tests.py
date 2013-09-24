@@ -8,19 +8,22 @@ Author: Wiwiweb
 
 """
 
-import unittest
-import pep8
-import pep257
-import sakuraibot
-import requests
-import uuid
-import praw
 import logging
 import sys
 from datetime import datetime
-from shutil import copy
 from filecmp import cmp
 from os import remove
+from shutil import copy
+
+import praw
+import unittest
+import pep8
+import pep257
+import requests
+import uuid
+
+import sakuraibot
+
 
 USERNAME = 'SakuraiBot_test'
 SUBREDDIT = 'SakuraiBot_test'

@@ -6,14 +6,17 @@ Created on 2013-07-24
 Author: Wiwiweb
 
 """
+
+import logging
+import smtplib
+import sys
+from logging.handlers import TimedRotatingFileHandler, RotatingFileHandler
+from time import sleep
+
 import requests
 
 from .sakuraibot import SakuraiBot
-import logging
-import sys
-import smtplib
-from logging.handlers import TimedRotatingFileHandler, RotatingFileHandler
-from time import sleep
+
 
 FREQUENCY = 300
 
