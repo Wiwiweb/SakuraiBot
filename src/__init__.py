@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 """
 Initialises and runs the bot in a loop.
 
@@ -16,7 +16,7 @@ from time import sleep
 
 import requests
 
-from .sakuraibot import SakuraiBot
+from sakuraibot import SakuraiBot
 
 
 CONFIG_FILE = "../cfg/config.ini"
