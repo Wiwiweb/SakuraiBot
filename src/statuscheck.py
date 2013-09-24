@@ -46,11 +46,12 @@ def send_alert_mail():
     except smtplib.SMTPException as e:
         logging.error("ERROR: Couldn't send alert email: " + str(e))
 
+
 if __name__ == '__main__':
     while True:
         ps = subprocess.Popen(
-            "ps -eo cmd,etime | grep '__init__.py' | grep -v grep | awk '{print("
-            "$3)}'",
+            "ps -eo cmd,etime | grep '__init__.py' | grep -v grep | awk "
+            "'{print($3)}'",
             shell=True, stdout=subprocess.PIPE)
         output = ps.stdout.read()
         ps.stdout.close()
@@ -61,6 +62,6 @@ if __name__ == '__main__':
             send_alert_mail()
             quit()
         else:
-            logging.info("SakuraiBot running. Uptime: " + output)
+            logging.info("SakuraiBot running. Uptime: " + str(output))
 
         sleep(30)
