@@ -55,7 +55,6 @@ if __name__ == '__main__':
               "awk '{print($3)}'"
 
         output = subprocess.check_output(cmd, shell=True).decode().strip()
-        print(output)
 
         if output == "":
             logging.error("SakuraiBot stopped!")
