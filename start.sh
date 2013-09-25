@@ -17,7 +17,7 @@ git pull
 # Start
 echo "Starting"
 cd src
-nohup python __init__.py >../nohup.out 2>&1 &
+nohup python3 __init__.py >../nohup.out 2>&1 &
 disown
 
 sleep 1
@@ -27,3 +27,15 @@ if [ -n "$SAKURAIPID" ]; then
 else
   echo "ERROR: Script stopped."
 fi
+
+nohup python3 statuscheck.py >../nohup.out 2>&1 &
+disown
+sleep 1
+export SAKURAIPID=`ps aux | grep '__init__.py' | grep -v grep | awk '{print($2)}'`
+if [ -n "$SAKURAIPID" ]; then
+  echo "Statuscheck running correctly."
+else
+  echo "ERROR: Statuscheck stopped."
+fi
+
+
