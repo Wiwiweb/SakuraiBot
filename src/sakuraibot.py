@@ -105,7 +105,7 @@ class SakuraiBot:
         req = requests.get(MIIVERSE_URL + MIIVERSE_DEVELOPER_PAGE,
                            cookies=cookies)
         soup = BeautifulSoup(req.text)
-        post_url_class = soup.find('div', {'class': 'post'})
+        post_url_class = soup.find('div', class_='post')
         if post_url_class is not None:
             post_url = post_url_class.get('data-href')
             self.logger.info("Last post found: " + post_url)
@@ -165,16 +165,15 @@ class SakuraiBot:
         req = requests.get(MIIVERSE_URL + post_url, cookies=cookies)
         soup = BeautifulSoup(req.text)
 
-        author = soup.find('p', {'class': 'user-name'}).find('a').get_text()
+        author = soup.find('p', class_='user-name').find('a').get_text()
         self.logger.info("Post author: " + author)
 
-        text = soup.find('p', {'class': 'post-content-text'}) \
+        text = soup.find('p', class_='post-content-text') \
             .get_text().strip()
         self.logger.debug("Text of type: " + str(type(text)))
         self.logger.info("Post text: " + text)
 
-        screenshot_container = soup.find('div',
-                                         {'class': 'screenshot-container'})
+        screenshot_container = soup.find('div', class_='screenshot-container')
         if screenshot_container is None:
             # Text post
             picture_url = None
@@ -183,7 +182,7 @@ class SakuraiBot:
         elif 'video' in screenshot_container['class']:
             # Video post
             picture_url = None
-            video_url = soup.find('p', {'class': 'url-link'}) \
+            video_url = soup.find('p', class_='url-link') \
                 .find('a').get('href')
             self.logger.info("Post video: " + video_url)
         else:
