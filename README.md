@@ -14,11 +14,11 @@ In case of error (such as Miiverse being down), the bot will try 5 more cycles. 
 Usage
 -----
 
-Make sure you are using Python 2.7 or more. If not done already, install PRAW and Beautiful Soup:
+Make sure you are using Python 3. If not done already, install PRAW, requests and Beautiful Soup:
 
-`pip install praw bs4`
+`pip install praw requests bs4`
 
-After that, you will need to create the /res/private folder and indicate your passwords and tokens in four files: `reddit-password.txt`, `miiverse-password.txt`, `imgur-refresh-token.txt` and `imgur-client-secret.txt`. If you want to use the error email function, you will also need a `mail-password.txt` file. You may also want to change the email address and reddit username in the source code. Those filepaths can also be changed easily in the code.
+After that, you will need to fill out the cfg/config-private.ini file with your passwords and tokens, as well as modify the defaults in cfg/config.ini if needed.
 
 Once done, run the bot using the `start.sh` script.
 
@@ -27,7 +27,7 @@ Contribute
 
 Pull requests are welcome! Feel free to submit after reading the following:
 
-This code respects [PEP8](http://www.python.org/dev/peps/pep-0008/) and [PEP257](http://www.python.org/dev/peps/pep-0257/). Tests will verify if these are respected, but they will not help you solve the problems. Scripts exists that will help you with this. Download them with `pip install pep8 pep257`.
+This code respects [PEP8](http://www.python.org/dev/peps/pep-0008/) and [PEP257](http://www.python.org/dev/peps/pep-0257/). Tests will verify if these are respected, and will give out messages pointing out errors, however it might be more convenient to use the existing command line scripts: Download them with `pip install pep8 pep257`.
 
 If you add something, please also add tests to `tests.py`. The tests use a subreddit, [/r/SakuraiBot_test](http://www.reddit.com/r/SakuraiBot_test/) and a user [/u/SakuraiBot_test](http://www.reddit.com/user/SakuraiBot_test/).
 
