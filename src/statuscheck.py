@@ -9,9 +9,6 @@ from time import sleep
 
 
 LOG_FILE_DEBUG = "../logs/statuscheck.log"
-MAIL_ADDRESS = "sakuraibotalert@gmail.com"
-SENDER_MAIL_ADDRESS = "sakuraibotalert@gmail.com"
-SMTP_HOST = "smtp.gmail.com:587"
 
 CONFIG_FILE = "../cfg/config.ini"
 CONFIG_FILE_PRIVATE = "../cfg/config-private.ini"
@@ -28,7 +25,8 @@ root_logger.addHandler(debug_handler)
 
 
 def send_alert_mail():
-    message = ("From: Script Alert: SakuraiBot <" + MAIL_ADDRESS + ">\n" +
+    message = ("From: Script Alert: SakuraiBot <" +
+               config['Mail']['sender_address'] + ">\n" +
                "Subject: SakuraiBot stopped unexpectedly! " +
                "(checkstatus.sh)\n\n")
     f = open(LOG_FILE_DEBUG, 'r')
@@ -36,12 +34,14 @@ def send_alert_mail():
     f.close()
     message += log_content
     try:
-        smtp = smtplib.SMTP(SMTP_HOST)
+        smtp = smtplib.SMTP(config['Mail']['smtp_host'])
         smtp.starttls()
-        logging.debug(MAIL_ADDRESS)
+        logging.debug(config['Mail']['sender_address'])
         logging.debug(config['Passwords']['mail'])
-        smtp.login(MAIL_ADDRESS, config['Passwords']['mail'])
-        smtp.sendmail(MAIL_ADDRESS, MAIL_ADDRESS, message)
+        smtp.login(config['Mail']['sender_address'],
+                   config['Passwords']['mail'])
+        smtp.sendmail(config['Mail']['sender_address'],
+                      config['Mail']['address'], message)
         logging.info("Alert email sent.")
     except smtplib.SMTPException as e:
         logging.error("ERROR: Couldn't send alert email: " + str(e))
@@ -49,19 +49,19 @@ def send_alert_mail():
 
 if __name__ == '__main__':
     while True:
-        ps = subprocess.Popen(
-            "ps -eo cmd,etime | grep '__init__.py' | grep -v grep | awk "
-            "'{print($3)}'",
-            shell=True, stdout=subprocess.PIPE)
-        output = ps.stdout.read()
-        ps.stdout.close()
-        ps.wait()
+        cmd = "ps -eo cmd,etime | " \
+              "grep __init__.py | " \
+              "grep -v grep | " \
+              "awk '{print($3)}'"
+
+        output = subprocess.check_output(cmd, shell=True).decode()
+        print(output)
 
         if output == "":
             logging.error("SakuraiBot stopped!")
             send_alert_mail()
             quit()
         else:
-            logging.info("SakuraiBot running. Uptime: " + str(output))
+            logging.info("SakuraiBot running. Uptime: " + output)
 
         sleep(30)

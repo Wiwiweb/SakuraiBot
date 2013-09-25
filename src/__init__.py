@@ -131,7 +131,7 @@ if __name__ == '__main__':
                 logging.exception("ERROR: Unknown error: " + str(e))
                 retry_or_die(sbot.dont_retry)
 
-            sleep(config['Main']['frequency'])
+            sleep(int(config['Main']['frequency']))
 
     except KeyboardInterrupt:
         logging.info("Keyboard interrupt detected, shutting down Sakuraibot.")
