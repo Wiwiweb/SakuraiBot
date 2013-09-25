@@ -54,7 +54,7 @@ if __name__ == '__main__':
               "grep -v grep | " \
               "awk '{print($3)}'"
 
-        output = subprocess.check_output(cmd, shell=True).decode()
+        output = subprocess.check_output(cmd, shell=True).decode().strip()
         print(output)
 
         if output == "":
