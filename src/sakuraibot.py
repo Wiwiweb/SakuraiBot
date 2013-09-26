@@ -14,6 +14,7 @@ from datetime import datetime
 import hashlib
 from logging import getLogger
 from random import randint
+import re
 from time import sleep
 
 from bs4 import BeautifulSoup
@@ -25,20 +26,27 @@ CONFIG_FILE_PRIVATE = "../cfg/config-private.ini"
 config = ConfigParser()
 config.read([CONFIG_FILE, CONFIG_FILE_PRIVATE])
 
-
-VERSION = "2.0"
+VERSION = "2.5"
 USER_AGENT = "SakuraiBot v" + VERSION + " by /u/Wiwiweb for /r/smashbros"
 
 LAST_PICTURE_MD5_FILENAME = "../res/last-picture-md5.txt"
+LAST_CHAR_FILENAME = "../res/last-char.txt"
 SAKURAI_BABBLES_FILENAME = "../res/sakurai-babbles.txt"
 
 MIIVERSE_URL = "https://miiverse.nintendo.net"
 MIIVERSE_CALLBACK_URL = "https://miiverse.nintendo.net/auth/callback"
 MIIVERSE_DEVELOPER_PAGE = "/titles/14866558073037299863/14866558073037300685"
+NINTENDO_LOGIN_PAGE = "https://id.nintendo.net/oauth/authorize"
+SMASH_WEBPAGE = "http://www.smashbros.com/us/"
+SMASH_DAILY_PIC = "http://www.smashbros.com/update/images/daily.jpg"
+SMASH_CHAR_MAIN_PIC = \
+    "http://www.smashbros.com/images/character/{character}/main.png"
+SMASH_CHAR_OTHER_PICS = \
+    "http://www.smashbros.com/images/character/{character}/screen-{number}.jpg"
 IMGUR_UPLOAD_URL = "https://api.imgur.com/3/image"
 IMGUR_REFRESH_URL = "https://api.imgur.com/oauth2/token"
-SMASH_DAILY_PIC = "http://www.smashbros.com/update/images/daily.jpg"
-NINTENDO_LOGIN_PAGE = "https://id.nintendo.net/oauth/authorize"
+
+NEW_CHAR_REGEX = r'The introduction for (.+), (.+), is now available\.'
 
 REDDIT_TITLE_LIMIT = 300
 IMGUR_TITLE_LIMIT = 128
@@ -58,14 +66,17 @@ class PostDetails:
         self.video = video
         self.smashbros_pic = smashbros_pic
 
-    def is_text_post(self):
-        return self.picture is None and self.video is None
-
     def is_picture_post(self):
         return self.picture is not None
 
-    def is_video_post(self):
-        return self.video is not None
+
+class CharDetails:
+    def __init__(self, char_id, name, description, main_pic, other_pics):
+        self.char_id = char_id
+        self.name = name
+        self.description = description
+        self.main_pic = main_pic
+        self.other_pics = other_pics
 
 
 class SakuraiBot:
@@ -159,6 +170,40 @@ class SakuraiBot:
             self.logger.info("Website picture has changed!")
             return True
 
+    def get_new_char(self):
+        f = open(LAST_CHAR_FILENAME, 'r')
+        last_char = f.read().strip()
+        f.close()
+        req = requests.get(SMASH_WEBPAGE)
+        soup = BeautifulSoup(req.text)
+        last_news = soup.find('div', class_='flR').find('a')
+        self.logger.debug("Last news post: " + last_news.string)
+        match = re.match(NEW_CHAR_REGEX,
+                         last_news.string)
+        if match and last_news.href != last_char:
+            # We've got a new char, get info
+            self.logger.info("New character announced!")
+            char_id = last_news.href[11:-5]
+            self.logger.debug("Char id: " + char_id)
+            char_name = match.group(2)
+            self.logger.info("Char name: " + char_name)
+            if re.search(match.group(1), r'veteran'):
+                char_description = 'Veteran fighter'
+            else:
+                char_description = 'New challenger'
+            self.logger.debug("Char description: " + char_description)
+            main_pic = SMASH_CHAR_MAIN_PIC.format(character=char_id)
+            self.logger.debug("Char main pic: " + main_pic)
+            other_pics = []
+            for i in range(1, 10):
+                other_pics.append(
+                    SMASH_CHAR_OTHER_PICS.format(character=char_id, number=i))
+                self.logger.debug("Char other pics: " + str(other_pics))
+            return CharDetails(char_id, char_name, char_description,
+                               main_pic, other_pics)
+        else:
+            return None
+
     def get_info_from_post(self, post_url, miiverse_cookie):
         """Fetch author, text and picture URL from the post."""
         cookies = {'ms': miiverse_cookie}
@@ -210,10 +255,10 @@ class SakuraiBot:
         while True:
             try:
                 parameters = {'refresh_token':
-                              config['Passwords']['imgur_refresh_token'],
+                                  config['Passwords']['imgur_refresh_token'],
                               'client_id': config['Imgur']['client_id'],
                               'client_secret':
-                              config['Passwords']['imgur_client_secret'],
+                                  config['Passwords']['imgur_client_secret'],
                               'grant_type': 'refresh_token'}
                 self.logger.debug("Token request parameters: "
                                   + str(parameters))
@@ -276,7 +321,7 @@ class SakuraiBot:
         rint = randint(0, len(sakurai_babbles) - 1)
         return sakurai_babbles[rint]
 
-    def post_to_reddit(self, post_details):
+    def post_to_reddit(self, post_details, new_char):
         """Post the Miiverse post to subreddit and returns the submission."""
         r = praw.Reddit(user_agent=USER_AGENT)
         r.login(self.username, config['Passwords']['reddit'])
@@ -284,8 +329,12 @@ class SakuraiBot:
 
         date = datetime.now().strftime('%y-%m-%d')
         author = post_details.author
-        title_format = "New " + author + " {type}! (" + \
-                       date + ") {text}{extra}"
+        if new_char:
+            title_format = "" + new_char.description + " approaching! (" + \
+                           date + ") {text}{extra}"
+        else:
+            title_format = "New " + author + " {type}! (" + \
+                           date + ") {text}{extra}"
         text_too_long = False
         text_post = False
         extra = ''
@@ -339,6 +388,7 @@ class SakuraiBot:
         # Additional comment
         comment = '{full_text} \n\n' \
                   '{original_picture} {album_link} \n\n' \
+                  '{new_char} \n\n' \
                   '{extra_comment}'
         if text_too_long:
             # Reddit formatting
@@ -399,6 +449,13 @@ class SakuraiBot:
         postf.close()
         self.logger.info("New post remembered.")
 
+    def set_last_char(self, new_char_id):
+        """Add the char id to the last-char.txt file."""
+        postf = open(self.last_post_filename, 'w')
+        postf.write(new_char_id)
+        postf.close()
+        self.logger.info("New char remembered.")
+
     def update_md5(self, current_md5):
         """Update the md5 in the last-picture-md5.txt file."""
         postf = open(self.picture_md5_filename, 'w')
@@ -428,10 +485,17 @@ class SakuraiBot:
                     self.logger.debug("Entering upload_to_imgur()")
                     post_details.smashbros_pic = \
                         self.upload_to_imgur(post_details)
+
+                self.logger.debug("Entering get_new_char()")
+                new_char = self.get_new_char()
+
                 self.logger.debug("Entering post_to_reddit()")
-                self.post_to_reddit(post_details)
+                self.post_to_reddit(post_details, new_char)
                 if not self.debug:
                     self.logger.debug("Entering set_last_post()")
                     self.set_last_post(post_url)
+                    if new_char:
+                        self.logger.debug("Entering set_last_char()")
+                        self.set_last_char(new_char.char_id)
                     self.logger.debug("Entering update_md5()")
                     self.update_md5(current_md5)
