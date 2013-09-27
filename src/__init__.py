@@ -40,7 +40,7 @@ else:
     username = config['Reddit']['username']
     subreddit = config['Reddit']['subreddit']
     imgur_album_id = config['Imgur']['album_id']
-    other_subreddits = config['Passwords']['new_char_subreddits'].split(', ')
+    other_subreddits = config['Reddit']['new_char_subreddits'].split(', ')
 
 root_logger = logging.getLogger()
 if debug:
