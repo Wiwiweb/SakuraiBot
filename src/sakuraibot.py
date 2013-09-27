@@ -38,11 +38,8 @@ MIIVERSE_CALLBACK_URL = "https://miiverse.nintendo.net/auth/callback"
 MIIVERSE_DEVELOPER_PAGE = "/titles/14866558073037299863/14866558073037300685"
 NINTENDO_LOGIN_PAGE = "https://id.nintendo.net/oauth/authorize"
 SMASH_WEBPAGE = "http://www.smashbros.com/us/"
+SMASH_CHARACTER_PAGE = "http://www.smashbros.com/us/characters/{}.html"
 SMASH_DAILY_PIC = "http://www.smashbros.com/update/images/daily.jpg"
-SMASH_CHAR_MAIN_PIC = \
-    "http://www.smashbros.com/images/character/{character}/main.png"
-SMASH_CHAR_OTHER_PICS = \
-    "http://www.smashbros.com/images/character/{character}/screen-{number}.jpg"
 IMGUR_UPLOAD_URL = "https://api.imgur.com/3/image"
 IMGUR_REFRESH_URL = "https://api.imgur.com/oauth2/token"
 
@@ -71,12 +68,10 @@ class PostDetails:
 
 
 class CharDetails:
-    def __init__(self, char_id, name, description, main_pic, other_pics):
+    def __init__(self, char_id, name, description):
         self.char_id = char_id
         self.name = name
         self.description = description
-        self.main_pic = main_pic
-        self.other_pics = other_pics
 
 
 class SakuraiBot:
@@ -176,14 +171,16 @@ class SakuraiBot:
         f.close()
         req = requests.get(SMASH_WEBPAGE)
         soup = BeautifulSoup(req.text)
-        last_news = soup.find('div', class_='flR').find('a')
+        last_news = soup.find('div', class_='newsBlock'). \
+            find('div', class_='flR').find('a')
         self.logger.debug("Last news post: " + last_news.string)
+        self.logger.debug("Last news href: " + last_news['href'])
         match = re.match(NEW_CHAR_REGEX,
                          last_news.string)
         if match and last_news.href != last_char:
             # We've got a new char, get info
             self.logger.info("New character announced!")
-            char_id = last_news.href[11:-5]
+            char_id = last_news['href'][11:-5]
             self.logger.debug("Char id: " + char_id)
             char_name = match.group(2)
             self.logger.info("Char name: " + char_name)
@@ -192,15 +189,7 @@ class SakuraiBot:
             else:
                 char_description = 'New challenger'
             self.logger.debug("Char description: " + char_description)
-            main_pic = SMASH_CHAR_MAIN_PIC.format(character=char_id)
-            self.logger.debug("Char main pic: " + main_pic)
-            other_pics = []
-            for i in range(1, 10):
-                other_pics.append(
-                    SMASH_CHAR_OTHER_PICS.format(character=char_id, number=i))
-                self.logger.debug("Char other pics: " + str(other_pics))
-            return CharDetails(char_id, char_name, char_description,
-                               main_pic, other_pics)
+            return CharDetails(char_id, char_name, char_description)
         else:
             return None
 
@@ -410,10 +399,21 @@ class SakuraiBot:
             f.truncate(0)  # Erase file
         f.close()
 
+        if new_char:
+            new_char_text = (
+                "**[{description} approaching! {name} joins the battle!]"
+                "({url})**"
+                .format(description=new_char.description,
+                        name=new_char.name,
+                        url=SMASH_CHARACTER_PAGE.format(new_char.char_id)))
+        else:
+            new_char_text = ''
+
         comment = comment.format(full_text=full_text,
                                  original_picture=original_picture,
                                  album_link=album_link,
-                                 extra_comment=extra_comment)
+                                 extra_comment=extra_comment,
+                                 new_char=new_char_text)
         comment = comment.strip()
 
         if text_post:

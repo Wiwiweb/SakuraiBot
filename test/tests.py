@@ -100,6 +100,13 @@ class BasicTests(unittest.TestCase):
         md5 = 'ea29d1e00c26ccd3088263f5340be961'
         self.assertFalse(self.sbot.is_website_new(md5))
 
+    def test_get_new_char(self):
+        new_char = self.sbot.get_new_char()
+        self.assertRegex(new_char.char_id, r'[a-z_]+')
+        self.assertRegex(new_char.name, r'[a-zA-Z ]+')
+        self.assertTrue(new_char.description == 'New challenger' or
+                        new_char.description == 'Veteran fighter')
+
     def test_set_last_post(self):
         file_before = 'last-post-before.txt'
         file_copy = 'last-post-before-copy.txt'
