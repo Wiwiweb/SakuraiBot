@@ -276,7 +276,7 @@ class RedditTests(unittest.TestCase):
                       unicode_text
         post_details = sakuraibot.PostDetails('Pug', unique_text,
                                               None, None, None)
-        submission = self.sbot.post_to_reddit(post_details)
+        submission = self.sbot.post_to_reddit(post_details, None)
         self.assertEquals(submission,
                           next(self.subreddit.get_new(limit=1)))
         self.assertEquals(submission,
@@ -292,7 +292,7 @@ class RedditTests(unittest.TestCase):
                       unicode_text + long_text
         post_details = sakuraibot.PostDetails('Pug', unique_text,
                                               None, None, None)
-        submission = self.sbot.post_to_reddit(post_details)
+        submission = self.sbot.post_to_reddit(post_details, None)
         self.assertEquals(submission,
                           next(self.subreddit.get_new(limit=1)))
         self.assertEquals(submission,
@@ -311,7 +311,7 @@ class RedditTests(unittest.TestCase):
                       unicode_text
         post_details = sakuraibot.PostDetails('Pug', unique_text,
                                               picture, None, picture)
-        submission = self.sbot.post_to_reddit(post_details)
+        submission = self.sbot.post_to_reddit(post_details, None)
         self.assertEquals(submission,
                           next(self.subreddit.get_new(limit=1)))
         self.assertEquals(submission,
@@ -329,7 +329,7 @@ class RedditTests(unittest.TestCase):
                       unicode_text + long_text
         post_details = sakuraibot.PostDetails('Pug', unique_text,
                                               picture, None, picture)
-        submission = self.sbot.post_to_reddit(post_details)
+        submission = self.sbot.post_to_reddit(post_details, None)
         self.assertEquals(submission,
                           next(self.subreddit.get_new(limit=1)))
         self.assertEquals(submission,
@@ -351,7 +351,7 @@ class RedditTests(unittest.TestCase):
                       unicode_text
         post_details = sakuraibot.PostDetails('Pug', unique_text,
                                               None, video, None)
-        submission = self.sbot.post_to_reddit(post_details)
+        submission = self.sbot.post_to_reddit(post_details, None)
         self.assertEquals(submission,
                           next(self.subreddit.get_new(limit=1)))
         self.assertEquals(submission,
