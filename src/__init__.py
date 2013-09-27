@@ -34,11 +34,13 @@ if len(sys.argv) > 1 and '--debug' in sys.argv:
     username = config['Reddit']['test_username']
     subreddit = config['Reddit']['test_subreddit']
     imgur_album_id = config['Imgur']['test_album_id']
+    other_subreddits = list(config['Reddit']['test_subreddit'])
 else:
     debug = False
     username = config['Reddit']['username']
     subreddit = config['Reddit']['subreddit']
     imgur_album_id = config['Imgur']['album_id']
+    other_subreddits = config['Passwords']['new_char_subreddits'].split(', ')
 
 root_logger = logging.getLogger()
 if debug:
@@ -106,10 +108,11 @@ def retry_or_die(dont_retry):
 
 if __name__ == '__main__':
     logging.info("--- Starting sakuraibot ---")
-    sbot = SakuraiBot(username, subreddit, imgur_album_id,
+    sbot = SakuraiBot(username, subreddit, other_subreddits, imgur_album_id,
                       config['Files']['last_post'],
                       config['Files']['extra_comment'],
                       config['Files']['picture_md5'],
+                      config['Files']['last_char'],
                       debug=debug)
     try:
         while True:

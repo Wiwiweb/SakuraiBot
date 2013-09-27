@@ -30,13 +30,13 @@ CONFIG_FILE_PRIVATE = "../cfg/config-private.ini"
 config = ConfigParser()
 config.read([CONFIG_FILE, CONFIG_FILE_PRIVATE])
 
-
 USER_AGENT = "SakuraiBot test suite"
 
 REDDIT_PASSWORD_FILENAME = '../res/private/reddit-password.txt'
 LAST_POST_FILENAME = 'last-post.txt'
 EXTRA_COMMENT_FILENAME = 'extra-comment.txt'
 PICTURE_MD5_FILENAME = 'last-picture-md5.txt'
+LAST_CHAR_FILENAME = 'last-char.txt'
 IMGUR_CLIENT_ID = '45b2e3810d7d550'
 
 logging.basicConfig(stream=sys.stdout, level=logging.DEBUG,
@@ -68,10 +68,12 @@ class BasicTests(unittest.TestCase):
     def setUp(self):
         self.sbot = sakuraibot.SakuraiBot(config['Reddit']['test_username'],
                                           config['Reddit']['test_subreddit'],
+                                          [config['Reddit']['test_subreddit']],
                                           config['Imgur']['test_album_id'],
                                           LAST_POST_FILENAME,
                                           EXTRA_COMMENT_FILENAME,
                                           PICTURE_MD5_FILENAME,
+                                          LAST_CHAR_FILENAME,
                                           debug=True)
 
     def test_get_new_miiverse_cookie(self):
@@ -131,10 +133,12 @@ class MiiverseTests(unittest.TestCase):
     def setUp(self):
         self.sbot = sakuraibot.SakuraiBot(config['Reddit']['test_username'],
                                           config['Reddit']['test_subreddit'],
+                                          [config['Reddit']['test_subreddit']],
                                           config['Imgur']['test_album_id'],
                                           LAST_POST_FILENAME,
                                           EXTRA_COMMENT_FILENAME,
                                           PICTURE_MD5_FILENAME,
+                                          LAST_CHAR_FILENAME,
                                           debug=True)
         self.cookie = self.sbot.get_new_miiverse_cookie()
 
@@ -200,10 +204,12 @@ class ImgurTests(unittest.TestCase):
     def setUp(self):
         self.sbot = sakuraibot.SakuraiBot(config['Reddit']['test_username'],
                                           config['Reddit']['test_subreddit'],
+                                          [config['Reddit']['test_subreddit']],
                                           config['Imgur']['test_album_id'],
                                           LAST_POST_FILENAME,
                                           EXTRA_COMMENT_FILENAME,
                                           PICTURE_MD5_FILENAME,
+                                          LAST_CHAR_FILENAME,
                                           debug=True)
         self.picture = 'http://i.imgur.com/uQIRrD2.gif'
 
@@ -259,10 +265,12 @@ class RedditTests(unittest.TestCase):
     def setUp(self):
         self.sbot = sakuraibot.SakuraiBot(config['Reddit']['test_username'],
                                           config['Reddit']['test_subreddit'],
+                                          [config['Reddit']['test_subreddit']],
                                           config['Imgur']['test_album_id'],
                                           LAST_POST_FILENAME,
                                           EXTRA_COMMENT_FILENAME,
                                           PICTURE_MD5_FILENAME,
+                                          LAST_CHAR_FILENAME,
                                           debug=True)
         self.r = praw.Reddit(user_agent=USER_AGENT)
         self.r.login(config['Reddit']['test_username'],
@@ -362,15 +370,51 @@ class RedditTests(unittest.TestCase):
         self.assertEquals(video, submission.url)
         #TODO test comment
 
+    def test_post_to_reddit_character(self):
+        unique = uuid4()
+        picture = 'http://i.imgur.com/uQIRrD2.gif?unique=' + str(unique)
+        unique_text = 'Character test: ' + str(unique) + \
+                      unicode_text
+        post_details = sakuraibot.PostDetails('Pug', unique_text,
+                                              picture, None, picture)
+        new_char = sakuraibot.CharDetails('pug', 'Pug', 'New challenger')
+        submission = self.sbot.post_to_reddit(post_details, new_char)
+        self.assertEquals(submission,
+                          next(self.subreddit.get_new(limit=1)))
+        self.assertEquals(submission,
+                          next(self.r.user.get_submitted(limit=1)))
+        date = datetime.now().strftime('%y-%m-%d')
+        title = 'New challenger approaching! (' + date + ') "' + unique_text \
+                + '"'
+        self.assertEquals(title, submission.title)
+        self.assertEquals(picture, submission.url)
+        #TODO test comment
+
+    def test_post_to_other_subreddits(self):
+        unique = uuid4()
+        name = 'pug' + str(unique)
+        new_char = sakuraibot.CharDetails(name, 'Pug', 'New challenger')
+        url = 'http://google.com'
+        self.sbot.post_to_other_subreddits(new_char, url)
+        title = "New challenger approaching!" \
+                " Pug confirmed for Super Smash Bros. 4!"
+        smash_url = "http://www.smashbros.com/en-uk/characters/{}.html"\
+            .format(name)
+        submission = next(self.subreddit.get_new(limit=1))
+        self.assertEquals(title, submission.title)
+        self.assertEquals(smash_url, submission.url)
+
 
 class CompleteTests(unittest.TestCase):
     def setUp(self):
         self.sbot = sakuraibot.SakuraiBot(config['Reddit']['test_username'],
                                           config['Reddit']['test_subreddit'],
+                                          [config['Reddit']['test_subreddit']],
                                           config['Imgur']['test_album_id'],
                                           LAST_POST_FILENAME,
                                           EXTRA_COMMENT_FILENAME,
                                           PICTURE_MD5_FILENAME,
+                                          LAST_CHAR_FILENAME,
                                           debug=True)
 
     def test_bot_cycle(self):

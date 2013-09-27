@@ -37,8 +37,8 @@ MIIVERSE_URL = "https://miiverse.nintendo.net"
 MIIVERSE_CALLBACK_URL = "https://miiverse.nintendo.net/auth/callback"
 MIIVERSE_DEVELOPER_PAGE = "/titles/14866558073037299863/14866558073037300685"
 NINTENDO_LOGIN_PAGE = "https://id.nintendo.net/oauth/authorize"
-SMASH_WEBPAGE = "http://www.smashbros.com/us/"
-SMASH_CHARACTER_PAGE = "http://www.smashbros.com/us/characters/{}.html"
+SMASH_WEBPAGE = "http://www.smashbros.com/en-uk/"
+SMASH_CHARACTER_PAGE = "http://www.smashbros.com/en-uk/characters/{}.html"
 SMASH_DAILY_PIC = "http://www.smashbros.com/update/images/daily.jpg"
 IMGUR_UPLOAD_URL = "https://api.imgur.com/3/image"
 IMGUR_REFRESH_URL = "https://api.imgur.com/oauth2/token"
@@ -63,8 +63,14 @@ class PostDetails:
         self.video = video
         self.smashbros_pic = smashbros_pic
 
+    def is_text_post(self):
+        return self.picture is None and self.video is None
+
     def is_picture_post(self):
         return self.picture is not None
+
+    def is_video_post(self):
+        return self.video is not None
 
 
 class CharDetails:
@@ -75,17 +81,20 @@ class CharDetails:
 
 
 class SakuraiBot:
-    def __init__(self, username, subreddit, imgur_album,
+    def __init__(self, username, subreddit, other_subreddits, imgur_album,
                  last_post_filename,
                  extra_comment_filename,
                  picture_md5_filename,
+                 last_char_filename,
                  logger=getLogger(), debug=False):
         self.username = username
         self.subreddit = subreddit
+        self.other_subreddits = other_subreddits
         self.imgur_album = imgur_album
         self.last_post_filename = last_post_filename
         self.extra_comment_filename = extra_comment_filename
         self.picture_md5_filename = picture_md5_filename
+        self.last_char_filename = last_char_filename
         self.logger = logger
         self.debug = debug
         self.dont_retry = False
@@ -117,9 +126,8 @@ class SakuraiBot:
             self.logger.info("Last post found: " + post_url)
             return post_url
         elif soup.find('form', {'id': 'login_form'}):
-            self.logger.error("ERROR: Could not sign in to Miiverse."
-                              " Shutting down.")
-            quit()
+            raise Exception("ERROR: Could not sign in to Miiverse."
+                            " Shutting down.")
         else:
             self.logger.debug("Page: " + req.text)
             raise Exception("Couldn't retrieve miiverse info.")
@@ -166,7 +174,7 @@ class SakuraiBot:
             return True
 
     def get_new_char(self):
-        f = open(LAST_CHAR_FILENAME, 'r')
+        f = open(self.last_char_filename, 'r')
         last_char = f.read().strip()
         f.close()
         req = requests.get(SMASH_WEBPAGE)
@@ -175,9 +183,10 @@ class SakuraiBot:
             find('div', class_='flR').find('a')
         self.logger.debug("Last news post: " + last_news.string)
         self.logger.debug("Last news href: " + last_news['href'])
+        self.logger.debug("Last char: " + last_char)
         match = re.match(NEW_CHAR_REGEX,
                          last_news.string)
-        if match and last_news.href != last_char:
+        if match and last_news['href'] != last_char:
             # We've got a new char, get info
             self.logger.info("New character announced!")
             char_id = last_news['href'][11:-5]
@@ -243,12 +252,13 @@ class SakuraiBot:
         imgur_access_token = ''
         while True:
             try:
-                parameters = {'refresh_token':
-                                  config['Passwords']['imgur_refresh_token'],
-                              'client_id': config['Imgur']['client_id'],
-                              'client_secret':
-                                  config['Passwords']['imgur_client_secret'],
-                              'grant_type': 'refresh_token'}
+                parameters = \
+                    {'refresh_token': config['Passwords'][
+                        'imgur_refresh_token'],
+                     'client_id': config['Imgur']['client_id'],
+                     'client_secret': config['Passwords'][
+                         'imgur_client_secret'],
+                     'grant_type': 'refresh_token'}
                 self.logger.debug("Token request parameters: "
                                   + str(parameters))
                 req = requests.post(IMGUR_REFRESH_URL, data=parameters)
@@ -439,6 +449,34 @@ class SakuraiBot:
         self.logger.info("Tagged as SSB4.")
 
         return r.get_submission(submission_id=submission.id, comment_limit=1)
+
+    def post_to_other_subreddits(self, new_char, rsmashbros_url):
+        r = praw.Reddit(user_agent=USER_AGENT)
+        r.login(self.username, config['Passwords']['reddit'])
+        self.logger.info("Logged into Reddit.")
+
+        title = "New challenger approaching! " \
+                "{name} confirmed for Super Smash Bros. 4!" \
+            .format(name=new_char.name)
+
+        comment = "[An album of all previous daily SSB4 pictures posted by " \
+                  "Sakurai.](http://imgur.com/a/{album})\n\n" \
+                  "If you are interested in SSB4 news, " \
+                  "join us at /r/smashbros " \
+                  "where we discuss every daily picture. [\({name} " \
+                  "/r/smashbros discussion thread.\)]({url})" \
+            .format(album=self.imgur_album, name=new_char.name,
+                    url=rsmashbros_url)
+
+        for subreddit in self.other_subreddits:
+            submission = r.submit(subreddit, title,
+                                  url=SMASH_CHARACTER_PAGE
+                                  .format(new_char.char_id))
+            self.logger.info(
+                "New submission posted to /r/" + subreddit + "! " +
+                submission.short_link)
+            submission.add_comment(comment)
+            self.logger.info("Comment posted  to /r/" + subreddit + ".")
 
     def set_last_post(self, post_url):
         """Add the post URL to the top of the last-post.txt file."""
