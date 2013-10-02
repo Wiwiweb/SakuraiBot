@@ -469,9 +469,16 @@ class SakuraiBot:
                     url=rsmashbros_url)
 
         for subreddit in self.other_subreddits:
-            submission = r.submit(subreddit, title,
-                                  url=SMASH_CHARACTER_PAGE
-                                  .format(new_char.char_id))
+            while True:
+                try:
+                    submission = r.submit(subreddit, title,
+                                          url=SMASH_CHARACTER_PAGE
+                                          .format(new_char.char_id))
+                except praw.errors.RateLimitExceeded as e:
+                    self.logger.error(e)
+                    self.logger.info("Waiting 1 minute.")
+                    sleep(60)
+                break
             self.logger.info(
                 "New submission posted to /r/" + subreddit + "! " +
                 submission.short_link)
@@ -530,9 +537,6 @@ class SakuraiBot:
                 self.logger.debug("Entering post_to_reddit()")
                 reddit_url = self.post_to_reddit(post_details, new_char)
 
-                if new_char:
-                    self.post_to_other_subreddits(new_char, reddit_url)
-
                 if not self.debug:
                     self.logger.debug("Entering set_last_post()")
                     self.set_last_post(post_url)
@@ -541,3 +545,7 @@ class SakuraiBot:
                         self.set_last_char(new_char.char_id)
                     self.logger.debug("Entering update_md5()")
                     self.update_md5(current_md5)
+
+                if new_char:
+                    self.logger.debug("Entering post_to_other_subreddits()")
+                    self.post_to_other_subreddits(new_char, reddit_url)
