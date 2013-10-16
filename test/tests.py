@@ -78,7 +78,7 @@ class BasicTests(unittest.TestCase):
 
     def test_get_new_miiverse_cookie(self):
         cookie = self.sbot.get_new_miiverse_cookie()
-        self.assertRegexpMatches(cookie, r'^[0-9]{10}[.].{43}$',
+        self.assertRegex(cookie, r'^[0-9]{10}[.].{43}$',
                                  "Malformed cookie: " + cookie)
 
     def test_is_new_post_yes(self):
