@@ -403,7 +403,7 @@ class SakuraiBot:
             original_picture = ''
         album_link = ("[Pic of the Day album](http://imgur.com/a/"
                       + self.imgur_album + ")")
-        f = open(self.extra_comment_filename, 'a+')
+        f = open(self.extra_comment_filename, 'r+')
         extra_comment = f.read().strip()
         if not self.debug:
             f.truncate(0)  # Erase file
