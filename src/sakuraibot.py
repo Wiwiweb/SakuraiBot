@@ -403,8 +403,10 @@ class SakuraiBot:
             original_picture = ''
         album_link = ("[Pic of the Day album](http://imgur.com/a/"
                       + self.imgur_album + ")")
+        self.logger.info("filename: " + self.extra_comment_filename)
         f = open(self.extra_comment_filename, 'r+')
         extra_comment = f.read().strip()
+        self.logger.info("comment: " + extra_comment)
         if not self.debug:
             f.truncate(0)  # Erase file
         f.close()
@@ -439,6 +441,7 @@ class SakuraiBot:
                                  + submission.short_link)
         else:
             if comment != '':
+                self.logger.info(comment)
                 submission.add_comment(comment)
                 self.logger.info("Comment posted.")
             else:
