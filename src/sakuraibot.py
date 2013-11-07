@@ -193,7 +193,7 @@ class SakuraiBot:
             self.logger.debug("Char id: " + char_id)
             char_name = match.group(2)
             self.logger.info("Char name: " + char_name)
-            if re.search(match.group(1), r'veteran'):
+            if re.search(r'veteran', match.group(1)):
                 char_description = 'Veteran fighter'
             else:
                 char_description = 'New challenger'
