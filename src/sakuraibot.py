@@ -477,11 +477,11 @@ class SakuraiBot:
                     submission = r.submit(subreddit, title,
                                           url=SMASH_CHARACTER_PAGE
                                           .format(new_char.char_id))
+                    break
                 except praw.errors.RateLimitExceeded as e:
                     self.logger.error(e)
-                    self.logger.info("Waiting 1 minute.")
-                    sleep(60)
-                break
+                    self.logger.info("Waiting 2 minutes.")
+                    sleep(120)
             self.logger.info(
                 "New submission posted to /r/" + subreddit + "! " +
                 submission.short_link)
