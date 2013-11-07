@@ -522,33 +522,34 @@ class SakuraiBot:
             self.logger.debug("Entering get_current_pic_md5()")
             current_md5 = self.get_current_pic_md5()
 
-            self.logger.debug("Entering is_website_new()")
-            if self.is_website_new(current_md5) or self.debug:
+            self.logger.debug("Entering is_website_new() loop")
+            while not (self.is_website_new(current_md5) or self.debug):
+                sleep(int(config['Main']['sleep_on_website_not_new']))
 
-                self.logger.debug("Entering get_info_from_post()")
-                post_details = self.get_info_from_post(post_url,
-                                                       miiverse_cookie)
+            self.logger.debug("Entering get_info_from_post()")
+            post_details = self.get_info_from_post(post_url,
+                                                   miiverse_cookie)
 
-                if post_details.is_picture_post():
-                    self.logger.debug("Entering upload_to_imgur()")
-                    post_details.smashbros_pic = \
-                        self.upload_to_imgur(post_details)
+            if post_details.is_picture_post():
+                self.logger.debug("Entering upload_to_imgur()")
+                post_details.smashbros_pic = \
+                    self.upload_to_imgur(post_details)
 
-                self.logger.debug("Entering get_new_char()")
-                new_char = self.get_new_char()
+            self.logger.debug("Entering get_new_char()")
+            new_char = self.get_new_char()
 
-                self.logger.debug("Entering post_to_reddit()")
-                reddit_url = self.post_to_reddit(post_details, new_char)
+            self.logger.debug("Entering post_to_reddit()")
+            reddit_url = self.post_to_reddit(post_details, new_char)
 
-                if not self.debug:
-                    self.logger.debug("Entering set_last_post()")
-                    self.set_last_post(post_url)
-                    if new_char:
-                        self.logger.debug("Entering set_last_char()")
-                        self.set_last_char(new_char.char_id)
-                    self.logger.debug("Entering update_md5()")
-                    self.update_md5(current_md5)
-
+            if not self.debug:
+                self.logger.debug("Entering set_last_post()")
+                self.set_last_post(post_url)
                 if new_char:
-                    self.logger.debug("Entering post_to_other_subreddits()")
-                    self.post_to_other_subreddits(new_char, reddit_url)
+                    self.logger.debug("Entering set_last_char()")
+                    self.set_last_char(new_char.char_id)
+                self.logger.debug("Entering update_md5()")
+                self.update_md5(current_md5)
+
+            if new_char:
+                self.logger.debug("Entering post_to_other_subreddits()")
+                self.post_to_other_subreddits(new_char, reddit_url)
