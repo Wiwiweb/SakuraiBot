@@ -15,11 +15,13 @@ import logging
 from os import remove
 from shutil import copy
 import sys
+from time import sleep
 
 import praw
 import unittest
 import pep8
 import pep257
+from praw.objects import Submission
 import requests
 from uuid import uuid4
 
@@ -144,8 +146,8 @@ class MiiverseTests(unittest.TestCase):
 
     def test_get_miiverse_last_post(self):
         url = self.sbot.get_miiverse_last_post(self.cookie)
-        self.assertRegexpMatches(url, r'^/posts/.{22}$',
-                                 "Malformed URL: " + url)
+        self.assertRegex(url, r'^/posts/.{22}$',
+                         "Malformed URL: " + url)
 
     def test_get_info_from_post_text(self):
         url = '/posts/AYMHAAABAADOUV51jNwWyg'
@@ -286,9 +288,9 @@ class RedditTests(unittest.TestCase):
                                               None, None, None)
         submission = self.sbot.post_to_reddit(post_details, None)
         self.assertEqual(submission,
-                         next(self.subreddit.get_new(limit=1)).short_link)
+                         next(self.subreddit.get_new(limit=1)))
         self.assertEqual(submission,
-                         next(self.r.user.get_submitted(limit=1)).short_link)
+                         next(self.r.user.get_submitted(limit=1)))
         date = datetime.now().strftime('%y-%m-%d')
         title = 'New Pug post! (' + date + ') "' \
                 + unique_text + '" (No picture)'
@@ -302,9 +304,9 @@ class RedditTests(unittest.TestCase):
                                               None, None, None)
         submission = self.sbot.post_to_reddit(post_details, None)
         self.assertEqual(submission,
-                         next(self.subreddit.get_new(limit=1)).short_link)
+                         next(self.subreddit.get_new(limit=1)))
         self.assertEqual(submission,
-                         next(self.r.user.get_submitted(limit=1)).short_link)
+                         next(self.r.user.get_submitted(limit=1)))
         date = datetime.now().strftime('%y-%m-%d')
         title = 'New Pug post! (' + date + ') "' + \
                 unique_text.rsplit(' ', 17)[0] + \
@@ -321,9 +323,9 @@ class RedditTests(unittest.TestCase):
                                               picture, None, picture)
         submission = self.sbot.post_to_reddit(post_details, None)
         self.assertEqual(submission,
-                         next(self.subreddit.get_new(limit=1)).short_link)
+                         next(self.subreddit.get_new(limit=1)))
         self.assertEqual(submission,
-                         next(self.r.user.get_submitted(limit=1)).short_link)
+                         next(self.r.user.get_submitted(limit=1)))
         date = datetime.now().strftime('%y-%m-%d')
         title = 'New Pug picture! (' + date + ') "' + unique_text + '"'
         self.assertEqual(title, submission.title)
@@ -339,15 +341,17 @@ class RedditTests(unittest.TestCase):
                                               picture, None, picture)
         submission = self.sbot.post_to_reddit(post_details, None)
         self.assertEqual(submission,
-                         next(self.subreddit.get_new(limit=1)).short_link)
+                         next(self.subreddit.get_new(limit=1)))
         self.assertEqual(submission,
-                         next(self.r.user.get_submitted(limit=1)).short_link)
+                         next(self.r.user.get_submitted(limit=1)))
         date = datetime.now().strftime('%y-%m-%d')
         title = 'New Pug picture! (' + date + ') "' + \
                 unique_text.rsplit(' ', 16)[0] + \
                 ' [...]" (Text too long! See comment)'
         self.assertEqual(title, submission.title)
         self.assertEqual(picture, submission.url)
+        # Reload comments
+        submission = next(self.subreddit.get_new(limit=1))
         comment = submission.comments[0].body
         self.assertTrue(unique_text in comment)
 
@@ -361,9 +365,9 @@ class RedditTests(unittest.TestCase):
                                               None, video, None)
         submission = self.sbot.post_to_reddit(post_details, None)
         self.assertEqual(submission,
-                         next(self.subreddit.get_new(limit=1)).short_link)
+                         next(self.subreddit.get_new(limit=1)))
         self.assertEqual(submission,
-                         next(self.r.user.get_submitted(limit=1)).short_link)
+                         next(self.r.user.get_submitted(limit=1)))
         date = datetime.now().strftime('%y-%m-%d')
         title = 'New Pug video! (' + date + ') "' + unique_text + '"'
         self.assertEqual(title, submission.title)
@@ -380,9 +384,9 @@ class RedditTests(unittest.TestCase):
         new_char = sakuraibot.CharDetails('pug', 'Pug', 'New challenger')
         submission = self.sbot.post_to_reddit(post_details, new_char)
         self.assertEqual(submission,
-                         next(self.subreddit.get_new(limit=1)).short_link)
+                         next(self.subreddit.get_new(limit=1)))
         self.assertEqual(submission,
-                         next(self.r.user.get_submitted(limit=1)).short_link)
+                         next(self.r.user.get_submitted(limit=1)))
         date = datetime.now().strftime('%y-%m-%d')
         title = 'New challenger approaching! (' + date + ') "' + unique_text \
                 + '"'

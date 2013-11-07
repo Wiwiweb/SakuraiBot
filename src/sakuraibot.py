@@ -451,7 +451,7 @@ class SakuraiBot:
         r.select_flair(submission, config['Reddit']['ssb4_flair'])
         self.logger.info("Tagged as SSB4.")
 
-        return submission.short_link
+        return submission
 
     def post_to_other_subreddits(self, new_char, rsmashbros_url):
         r = praw.Reddit(user_agent=USER_AGENT)
@@ -539,7 +539,7 @@ class SakuraiBot:
             new_char = self.get_new_char()
 
             self.logger.debug("Entering post_to_reddit()")
-            reddit_url = self.post_to_reddit(post_details, new_char)
+            reddit_url = self.post_to_reddit(post_details, new_char).short_link
 
             if not self.debug:
                 self.logger.debug("Entering set_last_post()")
