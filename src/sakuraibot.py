@@ -499,7 +499,7 @@ class SakuraiBot:
 
     def set_last_char(self, new_char_id):
         """Add the char id to the last-char.txt file."""
-        postf = open(self.last_post_filename, 'w')
+        postf = open(self.last_char_filename, 'w')
         postf.write('characters/' + new_char_id + '.html')
         postf.close()
         self.logger.info("New char remembered.")
