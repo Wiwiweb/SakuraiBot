@@ -477,16 +477,16 @@ class SakuraiBot:
                     submission = r.submit(subreddit, title,
                                           url=SMASH_CHARACTER_PAGE
                                           .format(new_char.char_id))
+                    self.logger.info(
+                        "New submission posted to /r/" + subreddit + "! " +
+                        submission.short_link)
+                    submission.add_comment(comment)
+                    self.logger.info("Comment posted  to /r/" + subreddit + ".")
                     break
                 except praw.errors.RateLimitExceeded as e:
                     self.logger.error(e)
                     self.logger.info("Waiting 2 minutes.")
                     sleep(120)
-            self.logger.info(
-                "New submission posted to /r/" + subreddit + "! " +
-                submission.short_link)
-            submission.add_comment(comment)
-            self.logger.info("Comment posted  to /r/" + subreddit + ".")
 
     def set_last_post(self, post_url):
         """Add the post URL to the top of the last-post.txt file."""
@@ -523,7 +523,13 @@ class SakuraiBot:
             current_md5 = self.get_current_pic_md5()
 
             self.logger.debug("Entering is_website_new() loop")
+            website_loop_retries = 10
             while not (self.is_website_new(current_md5) or self.debug):
+                website_loop_retries -= 1
+                if website_loop_retries <= 0:
+                    self.logger.warn("Checked website picture 10 times."
+                                     " Breaking out.")
+                    return
                 sleep(int(config['Main']['sleep_on_website_not_new']))
 
             self.logger.debug("Entering get_info_from_post()")
