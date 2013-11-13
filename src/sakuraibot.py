@@ -42,6 +42,9 @@ SMASH_CHARACTER_PAGE = "http://www.smashbros.com/en-uk/characters/{}.html"
 SMASH_DAILY_PIC = "http://www.smashbros.com/update/images/daily.jpg"
 IMGUR_UPLOAD_URL = "https://api.imgur.com/3/image"
 IMGUR_REFRESH_URL = "https://api.imgur.com/oauth2/token"
+IMGUR_SIGNIN_URL = "https://imgur.com/signin"
+IMGUR_REARRANGE_URL = "http://imgur.com/ajaxalbums/rearrange/{}"
+IMGUR_ALBUM_IMAGES_URL = "https://api.imgur.com/3/album/{}/images"
 
 NEW_CHAR_REGEX = r'The introduction for (.+), (.+), is now available\.'
 
@@ -107,10 +110,10 @@ class SakuraiBot:
                       'password': config['Passwords']['miiverse']}
         self.logger.debug("Parameters: " + str(parameters))
         req = requests.post(NINTENDO_LOGIN_PAGE, data=parameters)
-        miiverse_cookie = req.history[1].cookies['ms']
+        miiverse_cookie = req.history[1].cookies.get('ms')
         if miiverse_cookie is None:
             self.logger.debug("Page: " + req.text)
-            self.logger.debug("History: " + req.history)
+            self.logger.debug("History: ".join(req.history))
             raise Exception("Couldn't retrieve miiverse cookie.")
         return miiverse_cookie
 
@@ -293,8 +296,6 @@ class SakuraiBot:
                               'album_id': self.imgur_album,
                               'description': description,
                               'type': 'base64'}
-                self.logger.debug("Upload request parameters: "
-                                  + str(parameters))
                 headers = {'Authorization': 'Bearer ' + imgur_access_token}
                 req = requests.post(IMGUR_UPLOAD_URL, data=parameters,
                                     headers=headers)
@@ -312,6 +313,51 @@ class SakuraiBot:
                         ". Retrying.")
                     sleep(2)
                     continue
+
+        # Rearrange newest picture to be first of the album
+        # No API call for this...
+        # Time to do it the PRO MLG WAY
+
+        # Get Imgur session cookie
+        parameters = {'username': config['Imgur']['username'],
+                      'password': config['Passwords']['imgur']}
+        self.logger.debug("Parameters: " + str(parameters))
+
+        # Trust me bro, I'm totally not a Python script
+        headers = {'User-Agent': 'runscope/0.1'}
+
+        req = requests.post(IMGUR_SIGNIN_URL, data=parameters, headers=headers,
+                            allow_redirects=False)
+        imgur_cookie = req.cookies.get('IMGURSESSION')
+
+        if imgur_cookie is None:
+            self.logger.debug("Page: " + req.text)
+            self.logger.error("ERROR: Couldn't retrieve Imgur cookie.")
+        else:
+            self.logger.debug("imgur_cookie: " + imgur_cookie)
+
+            # Get all image ids
+            headers = {'Authorization': 'Bearer ' + imgur_access_token}
+            req = requests.get(IMGUR_ALBUM_IMAGES_URL.format(self.imgur_album),
+                               headers=headers)
+            new_img_id = picture_url[-11:-4]
+            album_order = new_img_id + ','
+            for img in req.json()['data']:
+                if img['id'] != new_img_id:
+                    album_order += img['id'] + ','
+            album_order = album_order[:-1]
+            self.logger.debug('album_order: ' + album_order)
+
+            # Use cookie to rearrange album
+            cookies = {'IMGURSESSION': imgur_cookie}
+            parameters = {'order': album_order}
+            self.logger.debug("Parameters: " + str(parameters))
+            req = requests.post(
+                IMGUR_REARRANGE_URL.format(self.imgur_album), data=parameters,
+                cookies=cookies)
+            if req.text:
+                raise Exception(
+                    "ERROR: Could not rearrange Imgur album: " + req.text)
 
         return picture_url
 
@@ -481,7 +527,8 @@ class SakuraiBot:
                         "New submission posted to /r/" + subreddit + "! " +
                         submission.short_link)
                     submission.add_comment(comment)
-                    self.logger.info("Comment posted  to /r/" + subreddit + ".")
+                    self.logger.info(
+                        "Comment posted  to /r/" + subreddit + ".")
                     break
                 except praw.errors.RateLimitExceeded as e:
                     self.logger.error(e)
@@ -556,6 +603,6 @@ class SakuraiBot:
                 self.logger.debug("Entering update_md5()")
                 self.update_md5(current_md5)
 
-            if new_char:
+            if new_char and not self.debug:
                 self.logger.debug("Entering post_to_other_subreddits()")
                 self.post_to_other_subreddits(new_char, reddit_url)

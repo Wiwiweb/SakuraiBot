@@ -220,7 +220,7 @@ class ImgurTests(unittest.TestCase):
         post_details = sakuraibot.PostDetails('Pug', unique_text,
                                               self.picture, None, None)
         picture_url = self.sbot.upload_to_imgur(post_details)
-        picture_id = picture_url[19:-4]
+        picture_id = picture_url[-11:-4]
 
         headers = {'Authorization': 'Client-ID ' + IMGUR_CLIENT_ID}
         req = requests.get('https://api.imgur.com/3/image/' + picture_id,
@@ -240,7 +240,8 @@ class ImgurTests(unittest.TestCase):
         logging.debug("Album Json Response: " + req.text)
         album_id_json = req.json()['data']['id']
         self.assertEqual(config['Imgur']['test_album_id'], album_id_json)
-        picture_id_json = req.json()['data']['images'][-1]['id']
+        # Test if the new picture is first
+        picture_id_json = req.json()['data']['images'][0]['id']
         self.assertEqual(picture_id, picture_id_json)
 
     def test_upload_to_imgur_long(self):
