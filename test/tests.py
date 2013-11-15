@@ -151,12 +151,11 @@ class MiiverseTests(unittest.TestCase):
 
     def test_get_info_from_post_text(self):
         url = '/posts/AYMHAAABAADOUV51jNwWyg'
-        text = ("Hi I'm the director of Super Smash Bros.,"
-                " Masahiro Sakurai of Sora.\r\n"
+        text = ("Hi I'm the director of Super Smash Bros., "
+                "Masahiro Sakurai of Sora.\r\n"
                 "From now on, I'll be posting on Miiverse, "
                 "so I hope you'll look forward to my posts.\r\n"
                 "Please note that I won't be able to answer any questions.")
-        text = str(text)
         info = self.sbot.get_info_from_post(url, self.cookie)
         self.assertTrue(info.is_text_post())
         self.assertEqual(info.author, 'Sakurai')
@@ -166,11 +165,14 @@ class MiiverseTests(unittest.TestCase):
         self.assertIsNone(info.picture)
         self.assertIsNone(info.video)
         self.assertIsNone(info.smashbros_pic)
+        self.assertIsNone(info.extra_author)
+        self.assertIsNone(info.extra_picture)
+        self.assertIsNone(info.extra_comment)
 
     def test_get_info_from_post_picture(self):
         url = '/posts/AYMHAAABAABtUV58IEIGrA'
-        text = str("Mega Man 2 seems to be the most popular,"
-                   " so many of his moves are from that game.")
+        text = ("Mega Man 2 seems to be the most popular,"
+                " so many of his moves are from that game.")
         picture = 'https://d3esbfg30x759i.cloudfront.net/ss/zlCfzRAybhUAGnxAWi'
 
         info = self.sbot.get_info_from_post(url, self.cookie)
@@ -182,13 +184,15 @@ class MiiverseTests(unittest.TestCase):
         self.assertEqual(info.picture, picture)
         self.assertIsNone(info.video)
         self.assertIsNone(info.smashbros_pic)
+        self.assertIsNone(info.extra_author)
+        self.assertIsNone(info.extra_picture)
+        self.assertIsNone(info.extra_comment)
 
     def test_get_info_from_post_video(self):
         url = '/posts/AYMHAAABAADMUKlXokfF0g'
         text = ("The long-awaited super robot Mega Man joins the battle!\r\n"
                 "He fights using the various weapons"
                 " he acquired from bosses in past games.")
-        text = str(text)
         video = 'http://www.youtube.com/watch?v=aX2KNyaoNV4'
 
         info = self.sbot.get_info_from_post(url, self.cookie)
@@ -199,6 +203,35 @@ class MiiverseTests(unittest.TestCase):
         self.assertEqual(info.text, text)
         self.assertIsNone(info.picture)
         self.assertEqual(info.video, video)
+        self.assertIsNone(info.smashbros_pic)
+        self.assertIsNone(info.extra_author)
+        self.assertIsNone(info.extra_picture)
+        self.assertIsNone(info.extra_comment)
+
+    def test_get_info_from_post_extra_picture(self):
+        url = '/posts/AYMHAAACAABnUYnYdfxmSw'
+        text = ("Pic of the day. "
+                "A new stage, Mario Galaxy!!  The pull of gravity "
+                "emanates from the center of the planet, "
+                "so this will require using brand-new tactics.")
+        picture = 'https://d3esbfg30x759i.cloudfront.net/ss/zlCfzRMJy3ooPr5IXd'
+        extra_picture = \
+            'https://d3esbfg30x759i.cloudfront.net/ss/zlCfzRMJy9APSdORn5'
+        extra_text = ("Here's what happens when you stand by the edges. "
+                      "Vertical jumps and getting hit upward "
+                      "will shoot you up diagonally.")
+
+        info = self.sbot.get_info_from_post(url, self.cookie)
+        self.assertTrue(info.is_picture_post())
+        self.assertEqual(info.author, 'Sakurai')
+        self.assertTrue(isinstance(info.text, str))  # Not unicode
+        self.assertTrue(isinstance(info.author, str))
+        self.assertEqual(info.text, text)
+        self.assertEqual(info.picture, picture)
+        self.assertEqual(info.extra_author, 'Sakurai')
+        self.assertEqual(info.extra_picture, extra_picture)
+        self.assertEqual(info.extra_comment, extra_text)
+        self.assertIsNone(info.video)
         self.assertIsNone(info.smashbros_pic)
 
 
@@ -313,7 +346,10 @@ class RedditTests(unittest.TestCase):
                 unique_text.rsplit(' ', 17)[0] + \
                 ' [...]" (Text too long! See post) (No picture)'
         self.assertEqual(title, submission.title)
-        #TODO test comment
+        # Reload comments
+        submission = next(self.subreddit.get_new(limit=1))
+        comment = submission.comments[0].body
+        self.assertTrue(unique_text in comment)
 
     def test_post_to_reddit_picture(self):
         unique = uuid4()
@@ -355,6 +391,33 @@ class RedditTests(unittest.TestCase):
         submission = next(self.subreddit.get_new(limit=1))
         comment = submission.comments[0].body
         self.assertTrue(unique_text in comment)
+
+    def test_post_to_reddit_extra_picture(self):
+        unique = uuid4()
+        picture = 'http://i.imgur.com/uQIRrD2.gif?unique=' + str(unique)
+        unique_text = 'Picture test: ' + str(unique) + \
+                      unicode_text
+        unique_extra_text = 'Extra text test: ' + str(unique) + \
+                            unicode_text
+        post_details = \
+            sakuraibot.PostDetails('Pug', unique_text,
+                                   picture, None, picture,
+                                   'Pug', unique_extra_text, picture)
+        submission = self.sbot.post_to_reddit(post_details, None)
+        self.assertEqual(submission,
+                         next(self.subreddit.get_new(limit=1)))
+        self.assertEqual(submission,
+                         next(self.r.user.get_submitted(limit=1)))
+        date = datetime.utcnow().strftime(config['Main']['date_format'])
+        title = 'New Pug picture! (' + date + ') "' + unique_text + '"'
+        self.assertEqual(title, submission.title)
+        self.assertEqual(picture, submission.url)
+        # Reload comments
+        submission = next(self.subreddit.get_new(limit=1))
+        comment = submission.comments[0].body
+        self.assertTrue("Extra Pug post in Miiverse's comments!" in comment)
+        self.assertTrue(unique_extra_text in comment)
+        self.assertTrue(picture in comment)
 
     def test_post_to_reddit_video(self):
         unique = uuid4()

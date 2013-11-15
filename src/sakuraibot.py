@@ -59,12 +59,16 @@ f.close()
 
 
 class PostDetails:
-    def __init__(self, author, text, picture, video, smashbros_pic):
+    def __init__(self, author, text, picture, video, smashbros_pic=None,
+                 extra_author=None, extra_comment=None, extra_picture=None):
         self.author = author
         self.text = text
         self.picture = picture
         self.video = video
         self.smashbros_pic = smashbros_pic
+        self.extra_author = extra_author
+        self.extra_comment = extra_comment
+        self.extra_picture = extra_picture
 
     def is_text_post(self):
         return self.picture is None and self.video is None
@@ -237,7 +241,33 @@ class SakuraiBot:
             video_url = None
             self.logger.info("Post picture: " + picture_url)
 
-        return PostDetails(author, text, picture_url, video_url, None)
+        # Check for extra image in comments
+        extra_post = soup.find('li', class_='official-user')
+        if extra_post is not None:
+            self.logger.info("Found an extra post!")
+            extra_author = \
+                extra_post.find('p', class_='user-name').find('a').get_text()
+            self.logger.info("Extra post author: " + extra_author)
+            extra_text = extra_post.find('p', class_='reply-content-text') \
+                .get_text().strip()
+            self.logger.info("Extra post text: " + extra_text)
+            extra_screenshot_container = \
+                extra_post.find('div', class_='screenshot-container')
+            if extra_screenshot_container is not None:
+                extra_picture = \
+                    extra_screenshot_container.find('img').get('src')
+                self.logger.info("Extra picture: " + extra_picture)
+            else:
+                extra_picture = None
+                self.logger.info("No extra picture.")
+        else:
+            self.logger.info("No extra post found.")
+            extra_author = None
+            extra_text = None
+            extra_picture = None
+
+        return PostDetails(author, text, picture_url, video_url, None,
+                           extra_author, extra_text, extra_picture)
 
     def upload_to_imgur(self, post_details):
         """Upload the picture to imgur and returns the link."""
@@ -434,6 +464,7 @@ class SakuraiBot:
         comment = '{full_text} \n\n' \
                   '{original_picture} {album_link} \n\n' \
                   '{new_char} \n\n' \
+                  '{bonus_post} \n\n' \
                   '{extra_comment}'
         if text_too_long:
             # Reddit formatting
@@ -467,9 +498,21 @@ class SakuraiBot:
         else:
             new_char_text = ''
 
+        if post_details.extra_author is not None:
+            bonus_post = "**Extra {author} post in Miiverse's comments!**" \
+                         "  \n>{text}" \
+                .format(author=post_details.extra_author,
+                        text=post_details.extra_comment)
+            if post_details.extra_picture is not None:
+                bonus_post += "\n\n[Extra picture]({})" \
+                    .format(post_details.extra_picture)
+        else:
+            bonus_post = ''
+
         comment = comment.format(full_text=full_text,
                                  original_picture=original_picture,
                                  album_link=album_link,
+                                 bonus_post=bonus_post,
                                  extra_comment=extra_comment,
                                  new_char=new_char_text)
         comment = comment.strip()
