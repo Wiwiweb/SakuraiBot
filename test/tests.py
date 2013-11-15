@@ -292,7 +292,7 @@ class RedditTests(unittest.TestCase):
                          next(self.subreddit.get_new(limit=1)))
         self.assertEqual(submission,
                          next(self.r.user.get_submitted(limit=1)))
-        date = datetime.utcnow().strftime(config['Main']['time_format'])
+        date = datetime.utcnow().strftime(config['Main']['date_format'])
         title = 'New Pug post! (' + date + ') "' \
                 + unique_text + '" (No picture)'
         self.assertEqual(title, submission.title)
@@ -308,7 +308,7 @@ class RedditTests(unittest.TestCase):
                          next(self.subreddit.get_new(limit=1)))
         self.assertEqual(submission,
                          next(self.r.user.get_submitted(limit=1)))
-        date = datetime.utcnow().strftime(config['Main']['time_format'])
+        date = datetime.utcnow().strftime(config['Main']['date_format'])
         title = 'New Pug post! (' + date + ') "' + \
                 unique_text.rsplit(' ', 17)[0] + \
                 ' [...]" (Text too long! See post) (No picture)'
@@ -327,7 +327,7 @@ class RedditTests(unittest.TestCase):
                          next(self.subreddit.get_new(limit=1)))
         self.assertEqual(submission,
                          next(self.r.user.get_submitted(limit=1)))
-        date = datetime.utcnow().strftime(config['Main']['time_format'])
+        date = datetime.utcnow().strftime(config['Main']['date_format'])
         title = 'New Pug picture! (' + date + ') "' + unique_text + '"'
         self.assertEqual(title, submission.title)
         self.assertEqual(picture, submission.url)
@@ -345,7 +345,7 @@ class RedditTests(unittest.TestCase):
                          next(self.subreddit.get_new(limit=1)))
         self.assertEqual(submission,
                          next(self.r.user.get_submitted(limit=1)))
-        date = datetime.utcnow().strftime(config['Main']['time_format'])
+        date = datetime.utcnow().strftime(config['Main']['date_format'])
         title = 'New Pug picture! (' + date + ') "' + \
                 unique_text.rsplit(' ', 16)[0] + \
                 ' [...]" (Text too long! See comment)'
@@ -369,7 +369,7 @@ class RedditTests(unittest.TestCase):
                          next(self.subreddit.get_new(limit=1)))
         self.assertEqual(submission,
                          next(self.r.user.get_submitted(limit=1)))
-        date = datetime.utcnow().strftime(config['Main']['time_format'])
+        date = datetime.utcnow().strftime(config['Main']['date_format'])
         title = 'New Pug video! (' + date + ') "' + unique_text + '"'
         self.assertEqual(title, submission.title)
         self.assertEqual(video, submission.url)
@@ -388,7 +388,7 @@ class RedditTests(unittest.TestCase):
                          next(self.subreddit.get_new(limit=1)))
         self.assertEqual(submission,
                          next(self.r.user.get_submitted(limit=1)))
-        date = datetime.utcnow().strftime(config['Main']['time_format'])
+        date = datetime.utcnow().strftime(config['Main']['date_format'])
         title = 'New challenger approaching! (' + date + ') "' + unique_text \
                 + '"'
         self.assertEqual(title, submission.title)
