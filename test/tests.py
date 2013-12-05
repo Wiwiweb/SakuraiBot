@@ -343,13 +343,10 @@ class RedditTests(unittest.TestCase):
                          next(self.r.user.get_submitted(limit=1)))
         date = datetime.utcnow().strftime(config['Main']['date_format'])
         title = 'New Pug post! (' + date + ') "' + \
-                unique_text.rsplit(' ', 17)[0] + \
+                unique_text.rsplit(' ', 16)[0] + \
                 ' [...]" (Text too long! See post) (No picture)'
         self.assertEqual(title, submission.title)
-        # Reload comments
-        submission = next(self.subreddit.get_new(limit=1))
-        comment = submission.comments[0].body
-        self.assertTrue(unique_text in comment)
+        self.assertTrue(unique_text in submission.selftext)
 
     def test_post_to_reddit_picture(self):
         unique = uuid4()

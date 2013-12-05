@@ -449,10 +449,15 @@ class SakuraiBot:
                 too_long_type = "comment"
             too_long = ' [...]" (Text too long! See {})'.format(too_long_type)
 
+            # allowed_text_length =
+            # length of text - the number of chars we must remove
+            #                - the length of the text we add at the end
             allowed_text_length = \
                 len(text) \
                 - (len(title) - REDDIT_TITLE_LIMIT) \
                 - len(too_long)
+            self.logger.debug("allowed_text_length: " +
+                              str(allowed_text_length))
             while len(text) > allowed_text_length:
                 text = text.rsplit(' ', 1)[0]  # Remove last word
             text += too_long
@@ -468,7 +473,7 @@ class SakuraiBot:
 
         # Additional comment
         comment = '{full_text}\n\n' \
-                  '{original_picture} | {album_link}\n\n' \
+                  '{original_picture} {album_link}\n\n' \
                   '{miiverse_links}\n\n' \
                   '{new_char}\n\n' \
                   '{bonus_post}\n\n' \
@@ -482,7 +487,7 @@ class SakuraiBot:
             full_text = ''
         if post_details.picture is not None:
             original_picture = ("[Original Miiverse picture]("
-                                + post_details.picture + ")")
+                                + post_details.picture + ") |")
         else:
             original_picture = ''
         album_link = ("[Pic of the Day album](http://imgur.com/a/"
