@@ -35,7 +35,8 @@ SAKURAI_BABBLES_FILENAME = "../res/sakurai-babbles.txt"
 
 MIIVERSE_URL = "https://miiverse.nintendo.net"
 MIIVERSE_CALLBACK_URL = "https://miiverse.nintendo.net/auth/callback"
-MIIVERSE_DEVELOPER_PAGE = "/titles/14866558073037299863/14866558073037300685"
+MIIVERSE_DEV_PAGE = "/titles/14866558073037299863/14866558073037300685"
+MIIVERSE_DEV_PAGE_JP = "/titles/14866558073037273112/14866558073037275469"
 NINTENDO_LOGIN_PAGE = "https://id.nintendo.net/oauth/authorize"
 SMASH_WEBPAGE = "http://www.smashbros.com/en-uk/"
 SMASH_CHARACTER_PAGE = "http://www.smashbros.com/en-uk/characters/{}.html"
@@ -121,10 +122,14 @@ class SakuraiBot:
             raise Exception("Couldn't retrieve miiverse cookie.")
         return miiverse_cookie
 
-    def get_miiverse_last_post(self, miiverse_cookie):
+    def get_miiverse_last_post(self, miiverse_cookie, japanese=False):
         """Fetch the URL path to the last Miiverse post."""
         cookies = {'ms': miiverse_cookie}
-        req = requests.get(MIIVERSE_URL + MIIVERSE_DEVELOPER_PAGE,
+        if japanese:
+            dev_page = MIIVERSE_DEV_PAGE_JP
+        else:
+            dev_page = MIIVERSE_DEV_PAGE
+        req = requests.get(MIIVERSE_URL + dev_page,
                            cookies=cookies)
         soup = BeautifulSoup(req.text)
         post_url_class = soup.find('div', class_='post')
@@ -396,7 +401,8 @@ class SakuraiBot:
         rint = randint(0, len(sakurai_babbles) - 1)
         return sakurai_babbles[rint]
 
-    def post_to_reddit(self, post_details, new_char):
+    def post_to_reddit(self, post_details, new_char=None,
+                       post_url=None, post_url_jp=None):
         """Post the Miiverse post to subreddit and returns the submission."""
         r = praw.Reddit(user_agent=USER_AGENT)
         r.login(self.username, config['Passwords']['reddit'])
@@ -461,10 +467,11 @@ class SakuraiBot:
             self.logger.info("New submission posted! " + submission.short_link)
 
         # Additional comment
-        comment = '{full_text} \n\n' \
-                  '{original_picture} {album_link} \n\n' \
-                  '{new_char} \n\n' \
-                  '{bonus_post} \n\n' \
+        comment = '{full_text}\n\n' \
+                  '{original_picture} | {album_link}\n\n' \
+                  '{miiverse_links}\n\n' \
+                  '{new_char}\n\n' \
+                  '{bonus_post}\n\n' \
                   '{extra_comment}'
         if text_too_long:
             # Reddit formatting
@@ -475,7 +482,7 @@ class SakuraiBot:
             full_text = ''
         if post_details.picture is not None:
             original_picture = ("[Original Miiverse picture]("
-                                + post_details.picture + ") |")
+                                + post_details.picture + ")")
         else:
             original_picture = ''
         album_link = ("[Pic of the Day album](http://imgur.com/a/"
@@ -487,6 +494,13 @@ class SakuraiBot:
         if not self.debug:
             f.truncate(0)  # Erase file
         f.close()
+
+        if post_url is not None and post_url_jp is not None:
+            miiverse_links = "[Miiverse post]({}) | " \
+                             "[Miiverse Japanese post]({})" \
+                .format(MIIVERSE_URL + post_url, MIIVERSE_URL + post_url_jp)
+        else:
+            miiverse_links = ''
 
         if new_char:
             new_char_text = (
@@ -512,6 +526,7 @@ class SakuraiBot:
         comment = comment.format(full_text=full_text,
                                  original_picture=original_picture,
                                  album_link=album_link,
+                                 miiverse_links=miiverse_links,
                                  bonus_post=bonus_post,
                                  extra_comment=extra_comment,
                                  new_char=new_char_text)
@@ -634,8 +649,11 @@ class SakuraiBot:
             self.logger.debug("Entering get_new_char()")
             new_char = self.get_new_char()
 
+            post_url_jp = self.get_miiverse_last_post(miiverse_cookie, True)
+
             self.logger.debug("Entering post_to_reddit()")
-            reddit_url = self.post_to_reddit(post_details, new_char).short_link
+            reddit_url = self.post_to_reddit(post_details, new_char,
+                                             post_url, post_url_jp).short_link
 
             if not self.debug:
                 self.logger.debug("Entering set_last_post()")
