@@ -61,6 +61,10 @@ else:
     root_logger.addHandler(timed_handler)
     root_logger.addHandler(debug_handler)
 
+# Silence python-requests
+requests_log = logging.getLogger('requests')
+requests_log.setLevel(logging.WARN)
+
 if len(sys.argv) > 1 and '--miiverse' in sys.argv:
     miiverse_main = True
     logging.info("Main pic: Miiverse")
