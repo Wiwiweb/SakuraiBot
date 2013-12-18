@@ -20,6 +20,7 @@ from time import sleep
 from bs4 import BeautifulSoup
 import praw
 import requests
+from uuid import uuid4
 
 CONFIG_FILE = "../cfg/config.ini"
 CONFIG_FILE_PRIVATE = "../cfg/config-private.ini"
@@ -468,8 +469,16 @@ class SakuraiBot:
 
         if not text_post:
             self.dont_retry = True
-            submission = r.submit(self.subreddit, title, url=url)
-            self.logger.info("New submission posted! " + submission.short_link)
+            try:
+                submission = r.submit(self.subreddit, title, url=url)
+                self.logger.info(
+                    "New submission posted! " + submission.short_link)
+            except praw.errors.AlreadySubmitted:
+                self.logger.info("Submission already posted. Changing url.")
+                url = url.split('?')[0] + '?unique=' + str(uuid4())
+                submission = r.submit(self.subreddit, title, url=url)
+                self.logger.info(
+                    "New submission posted! " + submission.short_link)
 
         # Additional comment
         comment = '{full_text}\n\n' \
