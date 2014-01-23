@@ -527,10 +527,11 @@ class SakuraiBot:
             new_char_text = ''
 
         if post_details.extra_author is not None:
+            extra_text = post_details.extra_comment.replace("\r\n", "  \n")
             bonus_post = "**Extra {author} post in Miiverse's comments!**" \
                          "  \n>{text}" \
                 .format(author=post_details.extra_author,
-                        text=post_details.extra_comment)
+                        text=extra_text)
             if post_details.extra_picture is not None:
                 bonus_post += "\n\n[Extra picture]({})" \
                     .format(post_details.extra_picture)
