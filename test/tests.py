@@ -34,9 +34,8 @@ config.read([CONFIG_FILE, CONFIG_FILE_PRIVATE])
 
 USER_AGENT = "SakuraiBot test suite"
 
-REDDIT_PASSWORD_FILENAME = '../res/private/reddit-password.txt'
 LAST_POST_FILENAME = 'last-post.txt'
-EXTRA_COMMENT_FILENAME = 'extra-comment.txt'
+EXTRA_COMMENT_FILENAME = '../res/extra-comment.txt'
 PICTURE_MD5_FILENAME = 'last-picture-md5.txt'
 LAST_CHAR_FILENAME = 'last-char.txt'
 IMGUR_CLIENT_ID = '45b2e3810d7d550'
