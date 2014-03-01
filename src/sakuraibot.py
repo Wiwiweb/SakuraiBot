@@ -275,13 +275,17 @@ class SakuraiBot:
         return PostDetails(author, text, picture_url, video_url, None,
                            extra_author, extra_text, extra_picture)
 
-    def upload_to_imgur(self, post_details):
+    def upload_to_imgur(self, post_details, website_give_up):
         """Upload the picture to imgur and returns the link."""
 
         # Get image base64 data
         # We could send the url to imgur directly
         # but sometimes imgur will not see the same image
-        req = requests.get(SMASH_DAILY_PIC)
+        if not website_give_up:
+            picture = SMASH_DAILY_PIC
+        else:
+            picture = post_details.picture
+        req = requests.get(picture)
         pic_base64 = b64encode(req.content)
 
         retries = 5
@@ -403,7 +407,8 @@ class SakuraiBot:
         return sakurai_babbles[rint]
 
     def post_to_reddit(self, post_details, new_char=None,
-                       post_url=None, post_url_jp=None):
+                       post_url=None, post_url_jp=None,
+                       website_give_up=False):
         """Post the Miiverse post to subreddit and returns the submission."""
         r = praw.Reddit(user_agent=USER_AGENT)
         r.login(self.username, config['Passwords']['reddit'])
@@ -482,6 +487,7 @@ class SakuraiBot:
 
         # Additional comment
         comment = '{full_text}\n\n' \
+                  '{website_give_up_text}' \
                   '{original_picture} {album_link}\n\n' \
                   '{miiverse_links}\n\n' \
                   '{new_char}\n\n' \
@@ -494,6 +500,14 @@ class SakuraiBot:
             self.logger.info("Text too long. Added to comment.")
         else:
             full_text = ''
+
+        if website_give_up:
+            website_give_up_text = "The Smash Bros website did not update" \
+                                   " in time, so today's link is the" \
+                                   " lower-quality Miiverse picture."
+        else:
+            website_give_up_text = None
+
         if post_details.picture is not None:
             original_picture = ("[Original Miiverse picture]("
                                 + post_details.picture + ") |")
@@ -539,6 +553,7 @@ class SakuraiBot:
             bonus_post = ''
 
         comment = comment.format(full_text=full_text,
+                                 website_give_up_text=website_give_up_text,
                                  original_picture=original_picture,
                                  album_link=album_link,
                                  miiverse_links=miiverse_links,
@@ -644,12 +659,13 @@ class SakuraiBot:
 
             self.logger.debug("Entering is_website_new() loop")
             website_loop_retries = 10
-            while not (self.is_website_new(current_md5) or self.debug):
+            website_give_up = False
+            while not self.is_website_new(current_md5) and not self.debug:
                 website_loop_retries -= 1
                 if website_loop_retries <= 0:
                     self.logger.warn("Checked website picture 10 times."
-                                     " Breaking out.")
-                    return
+                                     " Giving up.")
+                    website_give_up = True
                 sleep(int(config['Main']['sleep_on_website_not_new']))
 
             self.logger.debug("Entering get_info_from_post()")
@@ -659,7 +675,7 @@ class SakuraiBot:
             if post_details.is_picture_post():
                 self.logger.debug("Entering upload_to_imgur()")
                 post_details.smashbros_pic = \
-                    self.upload_to_imgur(post_details)
+                    self.upload_to_imgur(post_details, website_give_up)
 
             self.logger.debug("Entering get_new_char()")
             new_char = self.get_new_char()
@@ -668,7 +684,8 @@ class SakuraiBot:
 
             self.logger.debug("Entering post_to_reddit()")
             reddit_url = self.post_to_reddit(post_details, new_char,
-                                             post_url, post_url_jp).short_link
+                                             post_url, post_url_jp,
+                                             website_give_up).short_link
 
             if not self.debug:
                 self.logger.debug("Entering set_last_post()")
