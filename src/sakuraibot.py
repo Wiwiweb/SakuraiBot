@@ -275,7 +275,7 @@ class SakuraiBot:
         return PostDetails(author, text, picture_url, video_url, None,
                            extra_author, extra_text, extra_picture)
 
-    def upload_to_imgur(self, post_details, website_give_up):
+    def upload_to_imgur(self, post_details, website_give_up=False):
         """Upload the picture to imgur and returns the link."""
 
         # Get image base64 data
@@ -516,7 +516,7 @@ class SakuraiBot:
         album_link = ("[Pic of the Day album](http://imgur.com/a/"
                       + self.imgur_album + ")")
         self.logger.info("filename: " + self.extra_comment_filename)
-        f = open(self.extra_comment_filename, 'r+')
+        f = open(self.extra_comment_filename, 'a+')
         extra_comment = f.read().strip()
         self.logger.info("comment: " + extra_comment)
         if not self.debug:
@@ -588,6 +588,7 @@ class SakuraiBot:
         return submission
 
     def post_to_other_subreddits(self, new_char, rsmashbros_url):
+        """Post new character announcements in other subreddits."""
         r = praw.Reddit(user_agent=USER_AGENT)
         r.login(self.username, config['Passwords']['reddit'])
         self.logger.info("Logged into Reddit.")
@@ -647,32 +648,35 @@ class SakuraiBot:
         self.logger.info("Md5 updated.")
 
     def bot_cycle(self):
+        """Main loop of the bot."""
         self.logger.debug("Entering get_new_miiverse_cookie()")
         miiverse_cookie = self.get_new_miiverse_cookie()
         self.logger.debug("Entering get_miiverse_last_post()")
         post_url = self.get_miiverse_last_post(miiverse_cookie)
 
+        self.logger.debug("Entering get_current_pic_md5()")
+        current_md5 = self.get_current_pic_md5()
+
         self.logger.debug("Entering is_new_post()")
         if self.is_new_post(post_url) or self.debug:
-            self.logger.debug("Entering get_current_pic_md5()")
-            current_md5 = self.get_current_pic_md5()
-
-            self.logger.debug("Entering is_website_new() loop")
-            website_loop_retries = 10
-            website_give_up = False
-            while not self.is_website_new(current_md5) and not self.debug:
-                website_loop_retries -= 1
-                if website_loop_retries <= 0:
-                    self.logger.warn("Checked website picture 10 times."
-                                     " Giving up.")
-                    website_give_up = True
-                sleep(int(config['Main']['sleep_on_website_not_new']))
 
             self.logger.debug("Entering get_info_from_post()")
             post_details = self.get_info_from_post(post_url,
                                                    miiverse_cookie)
 
+            website_give_up = False
             if post_details.is_picture_post():
+                self.logger.debug("Entering is_website_new() loop")
+                website_loop_retries = 10
+
+                while not self.is_website_new(current_md5) and not self.debug:
+                    website_loop_retries -= 1
+                    if website_loop_retries <= 0:
+                        self.logger.warn("Checked website picture 10 times."
+                                         " Giving up.")
+                        website_give_up = True
+                    sleep(int(config['Main']['sleep_on_website_not_new']))
+
                 self.logger.debug("Entering upload_to_imgur()")
                 post_details.smashbros_pic = \
                     self.upload_to_imgur(post_details, website_give_up)
@@ -693,9 +697,12 @@ class SakuraiBot:
                 if new_char:
                     self.logger.debug("Entering set_last_char()")
                     self.set_last_char(new_char.char_id)
-                self.logger.debug("Entering update_md5()")
-                self.update_md5(current_md5)
 
             if new_char and not self.debug:
                 self.logger.debug("Entering post_to_other_subreddits()")
                 self.post_to_other_subreddits(new_char, reddit_url)
+
+        # Since we don't wait for the picture to change before posting anymore
+        # We need to update the md5 every time, even on old Miiverse posts
+        self.logger.debug("Entering update_md5()")
+        self.update_md5(current_md5)
