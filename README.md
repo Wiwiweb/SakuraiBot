@@ -27,7 +27,7 @@ Contribute
 
 Pull requests are welcome! Feel free to submit after reading the following:
 
-This code respects [PEP8](http://www.python.org/dev/peps/pep-0008/) and [PEP257](http://www.python.org/dev/peps/pep-0257/). Tests will verify if these are respected, and will give out messages pointing out errors, however it might be more convenient to use the existing command line scripts: Download them with `pip install pep8 pep257`.
+This code respects [PEP8](http://www.python.org/dev/peps/pep-0008/). Tests will verify if these are respected, and will give out messages pointing out errors, however it might be more convenient to use the existing command line script: Download it with `pip install pep8`.
 
 If you add something, please also add tests to `tests.py`. The tests use a subreddit, [/r/SakuraiBot_test](http://www.reddit.com/r/SakuraiBot_test/) and a user [/u/SakuraiBot_test](http://www.reddit.com/user/SakuraiBot_test/).
 

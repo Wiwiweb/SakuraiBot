@@ -59,11 +59,6 @@ class CodeFormatTests(unittest.TestCase):
                                         '../src/__init__.py', 'tests.py'])
         self.assertFalse(result.total_errors, result.messages)
 
-    def test_pep257_conformance(self):
-        result = pep257.check_files(['../src/sakuraibot.py',
-                                     '../src/__init__.py', 'tests.py'])
-        self.assertFalse(result)
-
 
 class BasicTests(unittest.TestCase):
     def setUp(self):
