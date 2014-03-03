@@ -675,6 +675,7 @@ class SakuraiBot:
                         self.logger.warn("Checked website picture 10 times."
                                          " Giving up.")
                         website_give_up = True
+                        break
                     sleep(int(config['Main']['sleep_on_website_not_new']))
 
                 self.logger.debug("Entering upload_to_imgur()")
