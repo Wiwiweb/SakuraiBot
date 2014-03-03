@@ -487,7 +487,7 @@ class SakuraiBot:
 
         # Additional comment
         comment = '{full_text}\n\n' \
-                  '{website_give_up_text}' \
+                  '{website_give_up_text}\n\n' \
                   '{original_picture} {album_link}\n\n' \
                   '{miiverse_links}\n\n' \
                   '{new_char}\n\n' \
