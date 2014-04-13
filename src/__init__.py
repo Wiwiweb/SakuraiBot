@@ -25,10 +25,6 @@ config = ConfigParser()
 config.read([CONFIG_FILE, CONFIG_FILE_PRIVATE])
 
 
-# -------------------------------------------------
-# Main loop
-# -------------------------------------------------
-
 if len(sys.argv) > 1 and '--debug' in sys.argv:
     debug = True
     username = config['Reddit']['test_username']
@@ -72,6 +68,11 @@ else:
     miiverse_main = False
     logging.info("Main pic: smashbros.com")
 
+# Create /res files if they don't exist
+open(config['Files']['last_post'], 'a').close()
+open(config['Files']['extra_comment'], 'a').close()
+open(config['Files']['picture_md5'], 'a').close()
+open(config['Files']['last_char'], 'a').close()
 
 def send_alert_mail():
     message = ("From: Script Alert: SakuraiBot <" +
@@ -109,6 +110,10 @@ def retry_or_die(dont_retry):
         logging.error("ERROR: Sleeping another cycle and retrying "
                       + str(global_retries) + " more times.")
 
+
+# -------------------------------------------------
+# Main loop
+# -------------------------------------------------
 
 if __name__ == '__main__':
     logging.info("--- Starting sakuraibot ---")
