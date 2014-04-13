@@ -49,6 +49,8 @@ IMGUR_REARRANGE_URL = "http://imgur.com/ajaxalbums/rearrange/{}"
 IMGUR_ALBUM_IMAGES_URL = "https://api.imgur.com/3/album/{}/images"
 
 NEW_CHAR_REGEX = r'The introduction for (.+), (.+), is now available\.'
+YOUTUBE_REGEX = \
+    r'https://www\.youtube\.com/embed/(.{11})\?rel=0&modestbranding=1'
 
 REDDIT_TITLE_LIMIT = 300
 IMGUR_TITLE_LIMIT = 128
@@ -238,8 +240,9 @@ class SakuraiBot:
         elif 'video' in screenshot_container['class']:
             # Video post
             picture_url = None
-            video_url = soup.find('p', class_='url-link') \
-                .find('a').get('href')
+            embed_url = screenshot_container.find('iframe').get('src')
+            video_id = re.match(YOUTUBE_REGEX, embed_url).group(1)
+            video_url = 'https://www.youtube.com/watch?v=' + video_id
             self.logger.info("Post video: " + video_url)
         else:
             # Picture post

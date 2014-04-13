@@ -187,7 +187,7 @@ class MiiverseTests(unittest.TestCase):
         text = ("The long-awaited super robot Mega Man joins the battle!\r\n"
                 "He fights using the various weapons"
                 " he acquired from bosses in past games.")
-        video = 'http://www.youtube.com/watch?v=aX2KNyaoNV4'
+        video = 'https://www.youtube.com/watch?v=aX2KNyaoNV4'
 
         info = self.sbot.get_info_from_post(url, self.cookie)
         self.assertTrue(info.is_video_post())
