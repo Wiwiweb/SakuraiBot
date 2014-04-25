@@ -509,7 +509,7 @@ class SakuraiBot:
                                    " in time, so today's link is the" \
                                    " lower-quality Miiverse picture."
         else:
-            website_give_up_text = None
+            website_give_up_text = ''
 
         if post_details.picture is not None:
             original_picture = ("[Original Miiverse picture]("
