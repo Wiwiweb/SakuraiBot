@@ -74,6 +74,7 @@ open(config['Files']['extra_comment'], 'a').close()
 open(config['Files']['picture_md5'], 'a').close()
 open(config['Files']['last_char'], 'a').close()
 
+
 def send_alert_mail():
     message = ("From: Script Alert: SakuraiBot <" +
                config['Mail']['sender_address'] + ">\n" +

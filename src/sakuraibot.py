@@ -64,15 +64,16 @@ f.close()
 
 class PostDetails:
     def __init__(self, author, text, picture, video, smashbros_pic=None,
-                 extra_author=None, extra_comment=None, extra_picture=None):
+                 extra_posts=None):
         self.author = author
         self.text = text
         self.picture = picture
         self.video = video
         self.smashbros_pic = smashbros_pic
-        self.extra_author = extra_author
-        self.extra_comment = extra_comment
-        self.extra_picture = extra_picture
+        if extra_posts is None:
+            self.extra_posts = []
+        else:
+            self.extra_posts = extra_posts
 
     def is_text_post(self):
         return self.picture is None and self.video is None
@@ -82,6 +83,13 @@ class PostDetails:
 
     def is_video_post(self):
         return self.video is not None
+
+
+class ExtraPost:
+    def __init__(self, author, text, picture):
+        self.author = author
+        self.text = text
+        self.picture = picture
 
 
 class CharDetails:
@@ -251,32 +259,34 @@ class SakuraiBot:
             self.logger.info("Post picture: " + picture_url)
 
         # Check for extra image in comments
-        extra_post = soup.find('li', class_='official-user')
-        if extra_post is not None:
-            self.logger.info("Found an extra post!")
-            extra_author = \
-                extra_post.find('p', class_='user-name').find('a').get_text()
-            self.logger.info("Extra post author: " + extra_author)
-            extra_text = extra_post.find('p', class_='reply-content-text') \
-                .get_text().strip()
-            self.logger.info("Extra post text: " + extra_text)
-            extra_screenshot_container = \
-                extra_post.find('div', class_='screenshot-container')
-            if extra_screenshot_container is not None:
-                extra_picture = \
-                    extra_screenshot_container.find('img').get('src')
-                self.logger.info("Extra picture: " + extra_picture)
-            else:
-                extra_picture = None
-                self.logger.info("No extra picture.")
+        extra_posts_soup = soup.find_all('li', class_='official-user')
+        extra_posts = []
+        if extra_posts_soup:
+            for extra_post in extra_posts_soup:
+                self.logger.info("Found an extra post!")
+                extra_author = extra_post.find('p', class_='user-name') \
+                    .find('a').get_text()
+                self.logger.info("Extra post author: " + extra_author)
+                extra_text = \
+                    extra_post.find('p', class_='reply-content-text') \
+                    .get_text().strip()
+                self.logger.info("Extra post text: " + extra_text)
+                extra_screenshot_container = \
+                    extra_post.find('div', class_='screenshot-container')
+                if extra_screenshot_container is not None:
+                    extra_picture = \
+                        extra_screenshot_container.find('img').get('src')
+                    self.logger.info("Extra picture: " + extra_picture)
+                else:
+                    self.logger.info("No extra picture.")
+                    extra_picture = None
+                extra_posts.append(
+                    ExtraPost(extra_author, extra_text, extra_picture))
         else:
             self.logger.info("No extra post found.")
-            extra_author = None
-            extra_text = None
-            extra_picture = None
 
         return PostDetails(author, text, picture_url, video_url, None,
-                           extra_author, extra_text, extra_picture)
+                           extra_posts)
 
     def upload_to_imgur(self, post_details, website_give_up=False):
         """Upload the picture to imgur and returns the link."""
@@ -494,28 +504,26 @@ class SakuraiBot:
                   '{original_picture} {album_link}\n\n' \
                   '{miiverse_links}\n\n' \
                   '{new_char}\n\n' \
-                  '{bonus_post}\n\n' \
+                  '{bonus_posts}\n\n' \
                   '{extra_comment}'
+        full_text = ''
         if text_too_long:
             # Reddit formatting
             reddit_text = post_details.text.replace("\r\n", "  \n")
             full_text = "Full text:  \n>" + reddit_text
             self.logger.info("Text too long. Added to comment.")
-        else:
-            full_text = ''
 
+        website_give_up_text = ''
         if website_give_up:
             website_give_up_text = "The Smash Bros website did not update" \
                                    " in time, so today's link is the" \
                                    " lower-quality Miiverse picture."
-        else:
-            website_give_up_text = ''
 
-        if post_details.picture is not None:
+        original_picture = ''
+        if post_details.picture:
             original_picture = ("[Original Miiverse picture]("
                                 + post_details.picture + ") |")
-        else:
-            original_picture = ''
+
         album_link = ("[Pic of the Day album](http://imgur.com/a/"
                       + self.imgur_album + ")")
         self.logger.info("filename: " + self.extra_comment_filename)
@@ -526,13 +534,14 @@ class SakuraiBot:
             f.truncate(0)  # Erase file
         f.close()
 
-        if post_url is not None and post_url_jp is not None:
+        if post_url and post_url_jp:
             miiverse_links = "[Miiverse post]({}) | " \
                              "[Miiverse Japanese post]({})" \
                 .format(MIIVERSE_URL + post_url, MIIVERSE_URL + post_url_jp)
         else:
             miiverse_links = ''
 
+        new_char_text = ''
         if new_char:
             new_char_text = (
                 "**[{description} approaching! {name} joins the battle!]"
@@ -540,27 +549,27 @@ class SakuraiBot:
                 .format(description=new_char.description,
                         name=new_char.name,
                         url=SMASH_CHARACTER_PAGE.format(new_char.char_id)))
-        else:
-            new_char_text = ''
 
-        if post_details.extra_author is not None:
-            extra_text = post_details.extra_comment.replace("\r\n", "  \n")
-            bonus_post = "**Extra {author} post in Miiverse's comments!**" \
-                         "  \n>{text}" \
-                .format(author=post_details.extra_author,
-                        text=extra_text)
-            if post_details.extra_picture is not None:
-                bonus_post += "\n\n[Extra picture]({})" \
-                    .format(post_details.extra_picture)
-        else:
-            bonus_post = ''
+        bonus_posts = ''
+        previous_author = ''
+        for extra_post in post_details.extra_posts:
+            extra_text = extra_post.text.replace("\r\n", "  \n")
+            if extra_post.author != previous_author:
+                bonus_posts +=\
+                    "**Extra {author} post in Miiverse's comments!**  \n" \
+                    .format(author=extra_post.author)
+            bonus_posts += ">{text}".format(text=extra_text)
+            if post_details.picture:
+                bonus_posts += "\n\n[Extra picture]({})\n\n" \
+                    .format(post_details.picture)
+            previous_author = extra_post.author
 
         comment = comment.format(full_text=full_text,
                                  website_give_up_text=website_give_up_text,
                                  original_picture=original_picture,
                                  album_link=album_link,
                                  miiverse_links=miiverse_links,
-                                 bonus_post=bonus_post,
+                                 bonus_posts=bonus_posts,
                                  extra_comment=extra_comment,
                                  new_char=new_char_text)
         comment = comment.strip()
