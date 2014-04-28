@@ -158,19 +158,20 @@ class SakuraiBot:
     def is_new_post(self, post_url):
         """Compare the latest post URL to the ones we already processed."""
         postf = open(self.last_post_filename, 'r')
+        lines = postf.readlines()
+        postf.close()
 
-        # We have to check 50 posts, because sometimes Miiverse will mess up
+        # We have to check all posts, because sometimes Miiverse will mess up
         # the order and we might think it's a new post even though it's not.
-        for _ in range(49):  # Only 50 posts on the first page.
-            seen_post = postf.readline().strip()
+        # Apparently it's not limited to the first page, so 50 isn't enough.
+        for line in lines:
+            seen_post = line.strip()
             if seen_post == post_url:
-                postf.close()
                 self.logger.info("Post was already posted")
                 return False
             elif not seen_post:  # No more lines.
                 break
 
-        postf.close()
         self.logger.info("Post is new!")
         return True
 
