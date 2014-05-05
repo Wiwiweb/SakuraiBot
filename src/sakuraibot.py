@@ -562,7 +562,7 @@ class SakuraiBot:
             bonus_posts += ">{text}".format(text=extra_text)
             if post_details.picture:
                 bonus_posts += "\n\n[Extra picture]({})\n\n" \
-                    .format(post_details.picture)
+                    .format(extra_post.picture)
             previous_author = extra_post.author
 
         comment = comment.format(full_text=full_text,
