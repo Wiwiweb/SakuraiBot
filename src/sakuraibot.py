@@ -126,6 +126,9 @@ class SakuraiBot:
                       'password': config['Passwords']['miiverse']}
         self.logger.debug("Parameters: " + str(parameters))
         req = requests.post(NINTENDO_LOGIN_PAGE, data=parameters)
+        if len(req.history) < 2:
+            self.logger.debug("Page: " + req.text)
+            raise Exception("Couldn't retrieve miiverse cookie.")
         miiverse_cookie = req.history[1].cookies.get('ms')
         if miiverse_cookie is None:
             self.logger.debug("Page: " + req.text)
