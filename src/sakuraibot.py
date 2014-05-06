@@ -537,6 +537,7 @@ class SakuraiBot:
         self.logger.info("filename: " + self.extra_comment_filename)
         f = open(self.extra_comment_filename, 'r+')
         extra_comment = f.read().strip()
+        extra_comment = "*****/n/n" + extra_comment
         self.logger.info("comment: " + extra_comment)
         if not self.debug:
             f.truncate(0)  # Erase file
