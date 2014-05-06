@@ -15,13 +15,10 @@ import logging
 from os import remove
 from shutil import copy
 import sys
-from time import sleep
 
 import praw
 import unittest
 import pep8
-import pep257
-from praw.objects import Submission
 import requests
 from uuid import uuid4
 
@@ -369,7 +366,7 @@ class RedditTests(unittest.TestCase):
         title = 'New Pug post! (' + date + ') "' \
                 + unique_text + '" (No picture)'
         self.assertEqual(title, submission.title)
-        #TODO test comment
+        # TODO test comment
 
     def test_post_to_reddit_text_long(self):
         unique_text = 'Long text test: ' + str(uuid4()) + \
@@ -404,7 +401,7 @@ class RedditTests(unittest.TestCase):
         title = 'New Pug picture! (' + date + ') "' + unique_text + '"'
         self.assertEqual(title, submission.title)
         self.assertEqual(picture, submission.url)
-        #TODO test comment
+        # TODO test comment
 
     def test_post_to_reddit_picture_long(self):
         unique = uuid4()
@@ -487,7 +484,7 @@ class RedditTests(unittest.TestCase):
         title = 'New Pug video! (' + date + ') "' + unique_text + '"'
         self.assertEqual(title, submission.title)
         self.assertEqual(video, submission.url)
-        #TODO test comment
+        # TODO test comment
 
     def test_post_to_reddit_character(self):
         unique = uuid4()
@@ -507,7 +504,7 @@ class RedditTests(unittest.TestCase):
                 + '"'
         self.assertEqual(title, submission.title)
         self.assertEqual(picture, submission.url)
-        #TODO test comment
+        # TODO test comment
 
     def test_post_to_other_subreddits(self):
         unique = uuid4()
@@ -538,7 +535,7 @@ class CompleteTests(unittest.TestCase):
 
     def test_bot_cycle(self):
         self.sbot.bot_cycle()
-        #TODO: asserts
+        # TODO: asserts
 
 
 if __name__ == '__main__':

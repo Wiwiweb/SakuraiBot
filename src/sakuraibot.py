@@ -431,7 +431,8 @@ class SakuraiBot:
         r.login(self.username, config['Passwords']['reddit'])
         self.logger.info("Logged into Reddit.")
 
-        date = datetime.utcnow().strftime(config['Main']['date_format'])
+        date_format = config['Main']['date_format']
+        date = datetime.utcnow().strftime(date_format)
         author = post_details.author
         if new_char:
             title_format = "" + new_char.description + " approaching! (" + \
