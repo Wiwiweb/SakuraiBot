@@ -13,9 +13,11 @@ from configparser import ConfigParser
 from datetime import datetime
 import hashlib
 from logging import getLogger
+import os
 from random import randint
 import re
 from time import sleep
+
 
 from bs4 import BeautifulSoup
 import praw
@@ -192,6 +194,7 @@ class SakuraiBot:
         f = open(self.picture_md5_filename, 'r')
         last_md5 = f.read().strip()
         f.close()
+        self.logger.debug("last_md5: " + last_md5)
 
         if current_md5 == last_md5:
             self.logger.info("Same website picture as before.")
@@ -671,9 +674,7 @@ class SakuraiBot:
         self.logger.debug("Entering get_miiverse_last_post()")
         post_url = self.get_miiverse_last_post(miiverse_cookie)
 
-        self.logger.debug("Entering get_current_pic_md5()")
-        current_md5 = self.get_current_pic_md5()
-
+        waiting_file = config['Files']['waiting_on_website']
         self.logger.debug("Entering is_new_post()")
         if self.is_new_post(post_url) or self.debug:
 
@@ -683,21 +684,32 @@ class SakuraiBot:
 
             website_give_up = False
             if post_details.is_picture_post():
+                self.logger.debug("Entering get_current_pic_md5()")
+                current_md5 = self.get_current_pic_md5()
+
                 self.logger.debug("Entering is_website_new() loop")
-                website_loop_retries = 10
+                website_tries = config['Main']['website_not_new_tries']
+                website_loop_retries = website_tries
 
                 while not self.is_website_new(current_md5) and not self.debug:
                     website_loop_retries -= 1
                     if website_loop_retries <= 0:
-                        self.logger.warn("Checked website picture 10 times."
-                                         " Giving up.")
+                        self.logger.warn("Checked website picture {} times."
+                                         " Giving up.".format(website_tries))
                         website_give_up = True
+                        # Create a flag to keep checking for the website pic
+                        open(waiting_file, 'a').close()
+                        self.logger.warn("Created waiting_on_website.")
                         break
                     sleep(int(config['Main']['sleep_on_website_not_new']))
 
                 self.logger.debug("Entering upload_to_imgur()")
                 post_details.smashbros_pic = \
                     self.upload_to_imgur(post_details, website_give_up)
+
+                if not self.debug:
+                    self.logger.debug("Entering update_md5()")
+                    self.update_md5(current_md5)
 
             self.logger.debug("Entering get_new_char()")
             new_char = self.get_new_char()
@@ -713,14 +725,19 @@ class SakuraiBot:
                 self.logger.debug("Entering set_last_post()")
                 self.set_last_post(post_url)
                 if new_char:
+                    self.logger.debug("Entering post_to_other_subreddits()")
+                    self.post_to_other_subreddits(new_char, reddit_url)
                     self.logger.debug("Entering set_last_char()")
                     self.set_last_char(new_char.char_id)
 
-            if new_char and not self.debug:
-                self.logger.debug("Entering post_to_other_subreddits()")
-                self.post_to_other_subreddits(new_char, reddit_url)
-
-        # Since we don't wait for the picture to change before posting anymore
-        # We need to update the md5 every time, even on old Miiverse posts
-        self.logger.debug("Entering update_md5()")
-        self.update_md5(current_md5)
+        # If the previous post did not get a website pic,
+        # we don't want to think the new website pic is for the next post.
+        # We need to update it ASAP.
+        elif os.path.isfile(waiting_file):
+            self.logger.debug("Entering get_current_pic_md5()")
+            current_md5 = self.get_current_pic_md5()
+            if self.is_website_new(current_md5):
+                self.logger.info("MD5 from last post was found.")
+                self.logger.debug("Entering update_md5()")
+                self.update_md5(current_md5)
+                os.remove(waiting_file)
