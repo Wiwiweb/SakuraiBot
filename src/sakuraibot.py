@@ -692,7 +692,7 @@ class SakuraiBot:
                 current_md5 = self.get_current_pic_md5()
 
                 self.logger.debug("Entering is_website_new() loop")
-                website_tries = config['Main']['website_not_new_tries']
+                website_tries = int(config['Main']['website_not_new_tries'])
                 website_loop_retries = website_tries
 
                 while not self.is_website_new(current_md5) and not self.debug:
