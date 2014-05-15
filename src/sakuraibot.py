@@ -571,7 +571,7 @@ class SakuraiBot:
                     "**Extra {author} post in Miiverse's comments!**  \n" \
                     .format(author=extra_post.author)
             bonus_posts += ">{text}".format(text=extra_text)
-            if post_details.picture:
+            if extra_post.picture:
                 bonus_posts += "\n\n[Extra picture]({})\n\n" \
                     .format(extra_post.picture)
             previous_author = extra_post.author
