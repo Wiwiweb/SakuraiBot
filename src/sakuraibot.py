@@ -525,7 +525,7 @@ class SakuraiBot:
         if website_give_up:
             website_give_up_text = \
                 ("The Smash Bros website did not update in time, "
-                 "so today's link is the lower-quality Miiverse picture."
+                 "so today's link is the lower-quality Miiverse picture. "
                  "The high quality picture will eventually appear "
                  "[here.](http://www.smashbros.com/update/images/daily.jpg)")
 
