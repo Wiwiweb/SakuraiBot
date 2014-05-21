@@ -697,6 +697,7 @@ class SakuraiBot:
 
                 while not self.is_website_new(current_md5) and not self.debug:
                     website_loop_retries -= 1
+                    current_md5 = self.get_current_pic_md5()
                     if website_loop_retries <= 0:
                         self.logger.warn("Checked website picture {} times."
                                          " Giving up.".format(website_tries))
