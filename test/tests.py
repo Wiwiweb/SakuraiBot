@@ -36,10 +36,11 @@ LAST_POST_FILENAME = 'last-post.txt'
 EXTRA_COMMENT_FILENAME = '../res/extra-comment.txt'
 PICTURE_MD5_FILENAME = 'last-picture-md5.txt'
 LAST_CHAR_FILENAME = 'last-char.txt'
-IMGUR_CLIENT_ID = '45b2e3810d7d550'
 
 logging.basicConfig(stream=sys.stdout, level=logging.DEBUG,
                     format='%(asctime)s: %(message)s')
+
+imgur_client_id = config['Imgur']['client_id']
 
 unicode_text = ' No \u0CA0_\u0CA0 ;' \
                ' Yes \u0CA0\u203F\u0CA0 \u2026'
@@ -292,7 +293,7 @@ class ImgurTests(unittest.TestCase):
         picture_url = self.sbot.upload_to_imgur(post_details)
         picture_id = picture_url[-11:-4]
 
-        headers = {'Authorization': 'Client-ID ' + IMGUR_CLIENT_ID}
+        headers = {'Authorization': 'Client-ID ' + imgur_client_id}
         req = requests.get('https://api.imgur.com/3/image/' + picture_id,
                            headers=headers)
         logging.debug("Image Json Response: " + req.text)
@@ -303,7 +304,7 @@ class ImgurTests(unittest.TestCase):
         description_json = req.json()['data']['description']
         self.assertIsNone(description_json)
 
-        headers = {'Authorization': 'Client-ID ' + IMGUR_CLIENT_ID}
+        headers = {'Authorization': 'Client-ID ' + imgur_client_id}
         req = requests.get('https://api.imgur.com/3/album/' +
                            config['Imgur']['test_album_id'],
                            headers=headers)
@@ -321,7 +322,7 @@ class ImgurTests(unittest.TestCase):
         picture_url = self.sbot.upload_to_imgur(post_details)
         picture_id = picture_url[19:-4]
 
-        headers = {'Authorization': 'Client-ID ' + IMGUR_CLIENT_ID}
+        headers = {'Authorization': 'Client-ID ' + imgur_client_id}
         req = requests.get('https://api.imgur.com/3/image/' + picture_id,
                            headers=headers)
         logging.debug("Image Json Response: " + req.text)
