@@ -42,6 +42,7 @@ MIIVERSE_DEV_PAGE = "/titles/14866558073037299863/14866558073037300685"
 MIIVERSE_DEV_PAGE_JP = "/titles/14866558073037273112/14866558073037275469"
 NINTENDO_LOGIN_PAGE = "https://id.nintendo.net/oauth/authorize"
 SMASH_WEBPAGE = "http://www.smashbros.com/en-uk/"
+SMASH_NEWS_PAGE = "http://www.smashbros.com/data/en-uk/news.json"
 SMASH_CHARACTER_PAGE = "http://www.smashbros.com/en-uk/characters/{}.html"
 SMASH_DAILY_PIC = "http://www.smashbros.com/update/images/daily.jpg"
 IMGUR_UPLOAD_URL = "https://api.imgur.com/3/image"
@@ -207,15 +208,14 @@ class SakuraiBot:
         f = open(self.last_char_filename, 'r')
         last_char = f.read().strip()
         f.close()
-        req = requests.get(SMASH_WEBPAGE)
-        soup = BeautifulSoup(req.text)
-        last_news = soup.find('div', class_='newsBlock'). \
-            find('div', class_='flR').find('a')
-        self.logger.debug("Last news post: " + last_news.string)
+        req = requests.get(SMASH_NEWS_PAGE)
+        news = req.json()['news']
+        last_news = news[0]
+        self.logger.debug("Last news post: " + last_news['content'])
         self.logger.debug("Last news href: " + last_news['href'])
         self.logger.debug("Last char: " + last_char)
         match = re.match(NEW_CHAR_REGEX,
-                         last_news.string)
+                         last_news['content'])
         if match and last_news['href'] != last_char:
             # We've got a new char, get info
             self.logger.info("New character announced!")
