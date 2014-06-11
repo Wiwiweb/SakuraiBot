@@ -325,7 +325,12 @@ class SakuraiBot:
                 self.logger.debug("Token request parameters: "
                                   + str(parameters))
                 req = requests.post(IMGUR_REFRESH_URL, data=parameters)
-                imgur_access_token = req.json()['access_token']
+                try:
+                    imgur_access_token = req.json()['access_token']
+                except KeyError:
+                    self.logger.error(
+                        "ERROR: Couldn't retrieve imgur access token.")
+                    self.logger.error("JSON: " + req.json())
                 break
             except requests.HTTPError as e:
                 retries -= 1
@@ -391,8 +396,8 @@ class SakuraiBot:
         imgur_cookie = req.cookies.get('IMGURSESSION')
 
         if imgur_cookie is None:
-            self.logger.debug("Page: " + req.text)
             self.logger.error("ERROR: Couldn't retrieve Imgur cookie.")
+            self.logger.error("Page: " + req.text)
         else:
             self.logger.debug("imgur_cookie: " + imgur_cookie)
 
