@@ -13,6 +13,7 @@ from datetime import datetime
 from filecmp import cmp
 import logging
 from os import remove
+import re
 from shutil import copy
 import sys
 
@@ -99,8 +100,8 @@ class BasicTests(unittest.TestCase):
 
     def test_get_new_char(self):
         new_char = self.sbot.get_new_char()
-        self.assertRegex(new_char.char_id, r'[a-z_]+')
-        self.assertRegex(new_char.name, r'[a-zA-Z ]+')
+        self.assertTrue(re.match(r'[a-z_-]+', new_char.char_id))
+        self.assertTrue(re.match(r'[a-zA-Z -]+', new_char.name))
         self.assertTrue(new_char.description == 'New challenger' or
                         new_char.description == 'Veteran fighter')
 

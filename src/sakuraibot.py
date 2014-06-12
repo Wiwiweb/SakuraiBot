@@ -205,32 +205,33 @@ class SakuraiBot:
             return True
 
     def get_new_char(self):
-        f = open(self.last_char_filename, 'r')
-        last_char = f.read().strip()
-        f.close()
         req = requests.get(SMASH_NEWS_PAGE)
         news = req.json()['news']
         last_news = news[0]
         self.logger.debug("Last news post: " + last_news['content'])
         self.logger.debug("Last news href: " + last_news['href'])
-        self.logger.debug("Last char: " + last_char)
         match = re.match(NEW_CHAR_REGEX,
                          last_news['content'])
-        if match and last_news['href'] != last_char:
-            # We've got a new char, get info
-            self.logger.info("New character announced!")
-            char_id = last_news['href'][11:-5]
-            self.logger.debug("Char id: " + char_id)
-            char_name = match.group(2)
-            self.logger.info("Char name: " + char_name)
-            if re.search(r'veteran', match.group(1)):
-                char_description = 'Veteran fighter'
-            else:
-                char_description = 'New challenger'
-            self.logger.debug("Char description: " + char_description)
-            return CharDetails(char_id, char_name, char_description)
-        else:
-            return None
+        if match:
+            char_id = last_news['href'][17:-5]
+            f = open(self.last_char_filename, 'r')
+            last_char = f.read().strip()
+            f.close()
+            self.logger.debug("Last char: " + last_char)
+            if char_id != last_char:
+                # We've got a new char, get info
+                self.logger.info("New character announced!")
+                char_id = last_news['href'][17:-5]
+                self.logger.debug("Char id: " + char_id)
+                char_name = match.group(2)
+                self.logger.info("Char name: " + char_name)
+                if re.search(r'veteran', match.group(1)):
+                    char_description = 'Veteran fighter'
+                else:
+                    char_description = 'New challenger'
+                self.logger.debug("Char description: " + char_description)
+                return CharDetails(char_id, char_name, char_description)
+        return None
 
     def get_info_from_post(self, post_url, miiverse_cookie):
         """Fetch author, text and picture URL from the post."""
@@ -665,7 +666,7 @@ class SakuraiBot:
     def set_last_char(self, new_char_id):
         """Add the char id to the last-char.txt file."""
         postf = open(self.last_char_filename, 'w')
-        postf.write('characters/' + new_char_id + '.html')
+        postf.write(new_char_id)
         postf.close()
         self.logger.info("New char remembered.")
 
