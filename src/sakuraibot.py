@@ -217,13 +217,12 @@ class SakuraiBot:
             f = open(self.last_char_filename, 'r')
             last_char = f.read().strip()
             f.close()
+            self.logger.debug("Char id: " + char_id)
             self.logger.debug("Last char: " + last_char)
             if char_id != last_char:
                 # We've got a new char, get info
-                self.logger.info("New character announced!")
-                char_id = last_news['href'][17:-5]
-                self.logger.debug("Char id: " + char_id)
                 char_name = match.group(2)
+                self.logger.info("New character announced!")
                 self.logger.info("Char name: " + char_name)
                 if re.search(r'veteran', match.group(1)):
                     char_description = 'Veteran fighter'

@@ -1,1 +1,1 @@
-characters/pug.html
+pug
