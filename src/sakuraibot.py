@@ -327,10 +327,11 @@ class SakuraiBot:
                 req = requests.post(IMGUR_REFRESH_URL, data=parameters)
                 try:
                     imgur_access_token = req.json()['access_token']
-                except KeyError:
+                except KeyError as e:
                     self.logger.error(
                         "ERROR: Couldn't retrieve imgur access token.")
-                    self.logger.error("JSON: " + req.json())
+                    self.logger.error("JSON: " + str(req.json()))
+                    raise e
                 break
             except requests.HTTPError as e:
                 retries -= 1
@@ -361,11 +362,19 @@ class SakuraiBot:
                               'album_id': self.imgur_album,
                               'description': description,
                               'type': 'base64'}
+                self.logger.debug("Image upload parameters: "
+                                  + str(parameters))
                 headers = {'Authorization': 'Bearer ' + imgur_access_token}
                 req = requests.post(IMGUR_UPLOAD_URL, data=parameters,
                                     headers=headers)
 
-                picture_url = req.json()['data']['link']
+                try:
+                    picture_url = req.json()['data']['link']
+                except KeyError as e:
+                    self.logger.error("ERROR: JSON key error "
+                                      "during image upload")
+                    self.logger.error("JSON: " + str(req.json()))
+                    raise e
                 self.logger.info("Uploaded to imgur! " + picture_url)
                 break
             except requests.HTTPError as e:
