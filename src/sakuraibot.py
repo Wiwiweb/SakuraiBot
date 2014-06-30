@@ -541,7 +541,7 @@ class SakuraiBot:
                 ("The Smash Bros website did not update in time, "
                  "so today's link is the lower-quality Miiverse picture. "
                  "The high quality picture will eventually appear "
-                 "[here.](http://www.smashbros.com/update/images/daily.jpg)")
+                 "[here.]({})".format(SMASH_DAILY_PIC))
 
         original_picture = ''
         if post_details.picture:
