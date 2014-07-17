@@ -88,7 +88,13 @@ class PostDetails:
     def is_video_post(self):
         return self.video is not None
 
-ExtraPost = collections.namedtuple('ExtraPost', 'author text picture')
+
+# Cannot be a namedtuple because it must stay mutable when uploading to imgur
+class ExtraPost:
+    def __init__(self, author, text, picture):
+        self.author = author
+        self.text = text
+        self.picture = picture
 
 CharDetails = collections.namedtuple('CharDetails', 'char_id name description')
 
@@ -336,22 +342,34 @@ class SakuraiBot:
                     sleep(2)
                     continue
 
+        # Get previous album order
+        headers = {'Authorization': 'Bearer ' + imgur_access_token}
+        req = requests.get(IMGUR_ALBUM_IMAGES_URL.format(self.imgur_album),
+                           headers=headers)
+        album_order = ''
+        for img in req.json()['data']:
+            album_order += img['id'] + ','
+        album_order = album_order[:-1]
+        self.logger.debug('Old album order: ' + album_order)
+        new_img_ids = ''
+
         # Upload picture
+        title = post_details.text
+        description = ''
+        if len(title) > IMGUR_TITLE_LIMIT:
+            too_long = ' [...]'
+            allowed_text_length = IMGUR_TITLE_LIMIT - len(too_long)
+            while len(title) > allowed_text_length:
+                title = title.rsplit(' ', 1)[0]  # Remove last word
+            title += too_long
+            description = post_details.text
+        # HTTPError retry loop
         while True:
             try:
-                title = post_details.text
-                description = ''
-                if len(title) > IMGUR_TITLE_LIMIT:
-                    too_long = ' [...]'
-                    allowed_text_length = IMGUR_TITLE_LIMIT - len(too_long)
-                    while len(title) > allowed_text_length:
-                        title = title.rsplit(' ', 1)[0]  # Remove last word
-                    title += too_long
-                    description = post_details.text
                 parameters = {'image': pic_base64,
                               'title': title,
-                              'album_id': self.imgur_album,
                               'description': description,
+                              'album_id': self.imgur_album,
                               'type': 'base64'}
                 self.logger.debug("Image upload parameters: "
                                   + str(parameters))
@@ -366,6 +384,7 @@ class SakuraiBot:
                                       "during image upload")
                     self.logger.error("JSON: " + str(req.json()))
                     raise e
+                new_img_ids = picture_url[-11:-4]
                 self.logger.info("Uploaded to imgur! " + picture_url)
                 break
             except requests.HTTPError as e:
@@ -378,6 +397,60 @@ class SakuraiBot:
                         ". Retrying.")
                     sleep(2)
                     continue
+
+        # Upload extra pictures if there's any
+        for extra_post in post_details.extra_posts:
+            if extra_post.picture:
+                title = extra_post.text
+                description = ''
+                if len(title) > IMGUR_TITLE_LIMIT:
+                    too_long = ' [...]'
+                    allowed_text_length = IMGUR_TITLE_LIMIT - len(too_long)
+                    while len(title) > allowed_text_length:
+                        title = title.rsplit(' ', 1)[0]  # Remove last word
+                    title += too_long
+                    description = extra_post.text
+                # HTTPError retry loop
+                while True:
+                    try:
+                        parameters = {'image': extra_post.picture,
+                                      'title': title,
+                                      'description': description,
+                                      'album_id': self.imgur_album,
+                                      'type': 'URL'}
+                        self.logger.debug("Extra image upload parameters: "
+                                          + str(parameters))
+                        headers = {'Authorization': 'Bearer ' +
+                                                    imgur_access_token}
+                        req = requests.post(IMGUR_UPLOAD_URL, data=parameters,
+                                            headers=headers)
+
+                        try:
+                            extra_picture_url = req.json()['data']['link']
+                        except KeyError as e:
+                            self.logger.error("ERROR: JSON key error "
+                                              "during extra image upload")
+                            self.logger.error("JSON: " + str(req.json()))
+                            raise e
+                        new_img_ids = \
+                            extra_picture_url[-11:-4] + ',' + new_img_ids
+                        extra_post.picture = extra_picture_url
+                        self.logger.info("Uploaded to imgur! " +
+                                         extra_picture_url)
+                        break
+                    except requests.HTTPError as e:
+                        retries -= 1
+                        if retries == 0:
+                            raise e
+                        else:
+                            self.logger.error(
+                                "ERROR: HTTPError: " +
+                                str(e.response.status_code) +
+                                ". Retrying.")
+                            sleep(2)
+                            continue
+
+        self.logger.info("New image ids: " + new_img_ids)
 
         # Rearrange newest picture to be first of the album
         # No API call for this...
@@ -400,22 +473,12 @@ class SakuraiBot:
             self.logger.error("Page: " + req.text)
         else:
             self.logger.debug("imgur_cookie: " + imgur_cookie)
-
-            # Get all image ids
-            headers = {'Authorization': 'Bearer ' + imgur_access_token}
-            req = requests.get(IMGUR_ALBUM_IMAGES_URL.format(self.imgur_album),
-                               headers=headers)
-            new_img_id = picture_url[-11:-4]
-            album_order = new_img_id + ','
-            for img in req.json()['data']:
-                if img['id'] != new_img_id:
-                    album_order += img['id'] + ','
-            album_order = album_order[:-1]
-            self.logger.debug('album_order: ' + album_order)
+            new_album_order = new_img_ids + ',' + album_order
+            self.logger.debug("New album order: " + new_album_order)
 
             # Use cookie to rearrange album
             cookies = {'IMGURSESSION': imgur_cookie}
-            parameters = {'order': album_order}
+            parameters = {'order': new_album_order}
             self.logger.debug("Parameters: " + str(parameters))
             req = requests.post(
                 IMGUR_REARRANGE_URL.format(self.imgur_album), data=parameters,
