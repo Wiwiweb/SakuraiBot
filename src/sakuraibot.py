@@ -9,6 +9,7 @@ Author: Wiwiweb
 """
 
 from base64 import b64encode
+import collections
 from configparser import ConfigParser
 from datetime import datetime
 import hashlib
@@ -87,19 +88,9 @@ class PostDetails:
     def is_video_post(self):
         return self.video is not None
 
+ExtraPost = collections.namedtuple('ExtraPost', 'author text picture')
 
-class ExtraPost:
-    def __init__(self, author, text, picture):
-        self.author = author
-        self.text = text
-        self.picture = picture
-
-
-class CharDetails:
-    def __init__(self, char_id, name, description):
-        self.char_id = char_id
-        self.name = name
-        self.description = description
+CharDetails = collections.namedtuple('CharDetails', 'char_id name description')
 
 
 class SakuraiBot:
