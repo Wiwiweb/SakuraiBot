@@ -125,7 +125,10 @@ class SakuraiBot:
                       'username': config['Miiverse']['username'],
                       'password': config['Passwords']['miiverse']}
         self.logger.debug("Parameters: " + str(parameters))
-        req = requests.post(NINTENDO_LOGIN_PAGE, data=parameters)
+        # For some reason the nintendo id certificate fails now
+        # It works fine in my browser but python and curl don't like it
+        # I'll bypass the verification for now
+        req = requests.post(NINTENDO_LOGIN_PAGE, data=parameters, verify=False)
         if len(req.history) < 2:
             self.logger.debug("Page: " + req.text)
             raise Exception("Couldn't retrieve miiverse cookie.")
