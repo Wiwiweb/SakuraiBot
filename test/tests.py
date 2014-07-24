@@ -87,8 +87,8 @@ class BasicTests(unittest.TestCase):
 
     def test_get_current_pic_md5(self):
         md5 = self.sbot.get_current_pic_md5()
-        self.assertRegexpMatches(md5, r'([a-fA-F\d]{32})',
-                                 "Malformed md5: " + md5)
+        self.assertRegex(md5, r'([a-fA-F\d]{32})',
+                         "Malformed md5: " + md5)
 
     def test_is_website_new_yes(self):
         md5 = '3c0cb77a45b1215d9d4ef6cda0d89959'

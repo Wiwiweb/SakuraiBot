@@ -18,12 +18,12 @@ import os
 from random import randint
 import re
 from time import sleep
-
+from uuid import uuid4
 
 from bs4 import BeautifulSoup
 import praw
 import requests
-from uuid import uuid4
+
 
 CONFIG_FILE = "../cfg/config.ini"
 CONFIG_FILE_PRIVATE = "../cfg/config-private.ini"
