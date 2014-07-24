@@ -2,7 +2,7 @@ SakuraiBot
 ==========
 
 SakuraiBot is a reddit bot for fetching new Smash Bros 4 posts and pictures posted by the developper Sakurai on Miiverse.  
-It is made in Python using the libraries [PRAW](https://github.com/praw-dev/praw), [Requests](http://docs.python-requests.org/en/latest/) and [Beautiful Soup](http://www.crummy.com/software/BeautifulSoup/).
+It is made in Python 3 using the libraries [PRAW](https://github.com/praw-dev/praw), [Requests](http://docs.python-requests.org/en/latest/) and [Beautiful Soup](http://www.crummy.com/software/BeautifulSoup/).
 
 The bot will periodically look at the top post of the [Miiverse Smash Bros Director](https://miiverse.nintendo.net/titles/14866558073037299863/14866558073037300685) page. If the post is new, it will follow its link and read the text, picture and/or video.  
 If the post contains a picture, the bot will find the [smashbros.com daily picture](http://www.smashbros.com/update/images/daily.jpg), which is the same picture but higher quality and without a watermark. Since the Miiverse post can sometimes be posted before the smashbros.com picture is updated, the bot checks the picture's md5 to see if it is really new.  
@@ -14,9 +14,9 @@ In case of error (such as Miiverse being down), the bot will try 5 more cycles. 
 Usage
 -----
 
-Make sure you are using Python 3. If not done already, install PRAW, requests and Beautiful Soup:
+Make sure you are using Python 3. If not done already, install the requirements:
 
-`pip install praw requests bs4`
+`pip install -r requirements.txt`
 
 After that, you will need to fill out the cfg/config-private.ini file with your passwords and tokens, as well as modify the defaults in cfg/config.ini if needed.
 
