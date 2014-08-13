@@ -1,3 +1,5 @@
 cfg/config-private.ini
-.DS_Store
 sakuraibot.log
+.idea
+__pycache__
+
