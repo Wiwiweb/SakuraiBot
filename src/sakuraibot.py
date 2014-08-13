@@ -207,16 +207,20 @@ class SakuraiBot:
     def get_new_char(self):
         req = requests.get(SMASH_NEWS_PAGE)
         news = req.json()['news']
-        last_news = news[0]
-        self.logger.debug("Last news post: " + last_news['content'])
-        self.logger.debug("Last news href: " + last_news['href'])
-        match = re.match(NEW_CHAR_REGEX,
-                         last_news['content'])
-        if match:
-            char_id = last_news['href'][17:-5]
-            f = open(self.last_char_filename, 'r')
-            last_char = f.read().strip()
-            f.close()
+        last_char_news = None
+        match = None
+        for single_news in news:
+            match = re.match(NEW_CHAR_REGEX, single_news['content'])
+            if match:
+                last_char_news = single_news
+                break
+        if last_char_news:
+            self.logger.debug("Last news post: " + last_char_news['content'])
+            self.logger.debug("Last news href: " + last_char_news['href'])
+            char_id = last_char_news['href'][17:-5]
+            file = open(self.last_char_filename, 'r')
+            last_char = file.read().strip()
+            file.close()
             self.logger.debug("Char id: " + char_id)
             self.logger.debug("Last char: " + last_char)
             if char_id != last_char:
