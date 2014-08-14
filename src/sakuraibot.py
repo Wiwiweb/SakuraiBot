@@ -207,33 +207,32 @@ class SakuraiBot:
     def get_new_char(self):
         req = requests.get(SMASH_NEWS_PAGE)
         news = req.json()['news']
-        last_char_news = None
-        match = None
         for single_news in news:
             match = re.match(NEW_CHAR_REGEX, single_news['content'])
             if match:
                 last_char_news = single_news
                 break
-        if last_char_news:
-            self.logger.debug("Last news post: " + last_char_news['content'])
-            self.logger.debug("Last news href: " + last_char_news['href'])
-            char_id = last_char_news['href'][17:-5]
-            file = open(self.last_char_filename, 'r')
-            last_char = file.read().strip()
-            file.close()
-            self.logger.debug("Char id: " + char_id)
-            self.logger.debug("Last char: " + last_char)
-            if char_id != last_char:
-                # We've got a new char, get info
-                char_name = match.group(2)
-                self.logger.info("New character announced!")
-                self.logger.info("Char name: " + char_name)
-                if re.search(r'veteran', match.group(1)):
-                    char_description = 'Veteran fighter'
-                else:
-                    char_description = 'New challenger'
-                self.logger.debug("Char description: " + char_description)
-                return CharDetails(char_id, char_name, char_description)
+        else:
+            return None
+        self.logger.debug("Last news post: " + last_char_news['content'])
+        self.logger.debug("Last news href: " + last_char_news['href'])
+        char_id = last_char_news['href'][17:-5]
+        file = open(self.last_char_filename, 'r')
+        last_char = file.read().strip()
+        file.close()
+        self.logger.debug("Char id: " + char_id)
+        self.logger.debug("Last char: " + last_char)
+        if char_id != last_char:
+            # We've got a new char, get info
+            char_name = match.group(2)
+            self.logger.info("New character announced!")
+            self.logger.info("Char name: " + char_name)
+            if re.search(r'veteran', match.group(1)):
+                char_description = 'Veteran fighter'
+            else:
+                char_description = 'New challenger'
+            self.logger.debug("Char description: " + char_description)
+            return CharDetails(char_id, char_name, char_description)
         return None
 
     def get_info_from_post(self, post_url, miiverse_cookie):
