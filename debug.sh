@@ -17,4 +17,4 @@ git pull
 # Start
 echo "Starting"
 cd src
-python __init__.py --debug
+python3 __init__.py --debug
