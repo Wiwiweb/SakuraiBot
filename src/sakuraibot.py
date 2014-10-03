@@ -21,6 +21,7 @@ from time import sleep
 from uuid import uuid4
 
 from bs4 import BeautifulSoup
+import lurklib
 import praw
 import requests
 
@@ -747,6 +748,20 @@ class SakuraiBot:
         postf.close()
         self.logger.info("Md5 updated.")
 
+    def post_to_irc(self, post_details, reddit_url):
+        """Post a message to IRC with the new Sakurai post details."""
+        server = config['IRC']['server']
+        channel = '#' + config['IRC']['channel']
+        nick = config['IRC']['nickname']
+        nicks = (nick, nick + '_', nick + '__')
+        irc_client = lurklib.Client(server=server, nick=nicks, tls=False)
+        self.logger.debug("Logged in to the IRC server")
+        irc_client.join_(channel)
+        irc_client.privmsg(channel, 'New Sakurai post! - ' + reddit_url)
+        irc_client.privmsg(channel, post_details.text)
+        self.logger.info("IRC Message posted")
+        irc_client.quit()
+
     def bot_cycle(self):
         """Main loop of the bot."""
         self.logger.debug("Entering get_new_miiverse_cookie()")
@@ -818,6 +833,8 @@ class SakuraiBot:
                     self.post_to_other_subreddits(new_char, reddit_url)
                     self.logger.debug("Entering set_last_char()")
                     self.set_last_char(new_char.char_id)
+                self.logger.debug("Entering post_to_irc()")
+                self.post_to_irc(post_details, reddit_url)
 
         # If the previous post did not get a website pic,
         # we don't want to think the new website pic is for the next post.
