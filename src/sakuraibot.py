@@ -61,8 +61,8 @@ IMGUR_TITLE_LIMIT = 128
 
 f = open(SAKURAI_BABBLES_FILENAME, 'r')
 sakurai_babbles = []
-for line in f:
-    sakurai_babbles.append(line.strip())
+for babble in f:
+    sakurai_babbles.append(babble.strip())
 f.close()
 
 
@@ -96,6 +96,7 @@ class ExtraPost:
         self.text = text
         self.picture = picture
 
+
 CharDetails = collections.namedtuple('CharDetails', 'char_id name description')
 
 
@@ -105,7 +106,7 @@ class SakuraiBot:
                  extra_comment_filename,
                  picture_md5_filename,
                  last_char_filename,
-                 logger=getLogger(), debug=False):
+                 logger=getLogger(), miiverse_main=False, debug=False):
         self.username = username
         self.subreddit = subreddit
         self.other_subreddits = other_subreddits
@@ -115,6 +116,7 @@ class SakuraiBot:
         self.picture_md5_filename = picture_md5_filename
         self.last_char_filename = last_char_filename
         self.logger = logger
+        self.miiverse_main = miiverse_main
         self.debug = debug
         self.dont_retry = False
 
@@ -596,7 +598,7 @@ class SakuraiBot:
             self.logger.info("Text too long. Added to comment.")
 
         website_give_up_text = ''
-        if website_give_up:
+        if website_give_up and not self.miiverse_main:
             website_give_up_text = \
                 ("The Smash Bros website did not update in time, "
                  "so today's link is the lower-quality Miiverse picture. "
@@ -641,7 +643,7 @@ class SakuraiBot:
         for extra_post in post_details.extra_posts:
             extra_text = extra_post.text.replace("\r\n", "  \n")
             if extra_post.author != previous_author:
-                bonus_posts +=\
+                bonus_posts += \
                     "**Extra {author} post in Miiverse's comments!**  \n" \
                     .format(author=extra_post.author)
             bonus_posts += ">{text}".format(text=extra_text)
@@ -765,22 +767,30 @@ class SakuraiBot:
                 self.logger.debug("Entering get_current_pic_md5()")
                 current_md5 = self.get_current_pic_md5()
 
-                self.logger.debug("Entering is_website_new() loop")
-                website_tries = int(config['Main']['website_not_new_tries'])
-                website_loop_retries = website_tries
+                if not self.miiverse_main:
+                    self.logger.debug("Entering is_website_new() loop")
+                    website_tries = \
+                        int(config['Main']['website_not_new_tries'])
+                    website_loop_retries = website_tries
 
-                while not self.is_website_new(current_md5) and not self.debug:
-                    website_loop_retries -= 1
-                    current_md5 = self.get_current_pic_md5()
-                    if website_loop_retries <= 0:
-                        self.logger.warn("Checked website picture {} times."
-                                         " Giving up.".format(website_tries))
-                        website_give_up = True
-                        # Create a flag to keep checking for the website pic
-                        open(waiting_file, 'a').close()
-                        self.logger.warn("Created waiting_on_website.")
-                        break
-                    sleep(int(config['Main']['sleep_on_website_not_new']))
+                    while not self.is_website_new(current_md5) \
+                            and not self.debug:
+                        website_loop_retries -= 1
+                        current_md5 = self.get_current_pic_md5()
+                        if website_loop_retries <= 0:
+                            self.logger.warn(
+                                "Checked website picture {} times."
+                                " Giving up.".format(website_tries))
+                            website_give_up = True
+                            # Create a flag to keep checking the website pic
+                            open(waiting_file, 'a').close()
+                            self.logger.warn("Created waiting_on_website.")
+                            break
+                        sleep(int(config['Main']['sleep_on_website_not_new']))
+                else:
+                    self.logger.info("Miiverse is set as main picture,"
+                                     " did not check website")
+                    website_give_up = True
 
                 self.logger.debug("Entering upload_to_imgur()")
                 post_details.smashbros_pic = \
