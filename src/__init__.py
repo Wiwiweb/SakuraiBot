@@ -123,7 +123,7 @@ if __name__ == '__main__':
                       config['Files']['extra_comment'],
                       config['Files']['picture_md5'],
                       config['Files']['last_char'],
-                      debug=debug)
+                      miiverse_main=miiverse_main, debug=debug)
     try:
         while True:
             try:

@@ -37,7 +37,6 @@ def send_alert_mail():
         smtp = smtplib.SMTP(config['Mail']['smtp_host'])
         smtp.starttls()
         logging.debug(config['Mail']['sender_address'])
-        logging.debug(config['Passwords']['mail'])
         smtp.login(config['Mail']['sender_address'],
                    config['Passwords']['mail'])
         smtp.sendmail(config['Mail']['sender_address'],
@@ -48,11 +47,11 @@ def send_alert_mail():
 
 
 if __name__ == '__main__':
+
+    logging.info("Statuscheck started.")
     while True:
-        cmd = "ps -eo cmd,etime | " \
-              "grep __init__.py | " \
-              "grep -v grep | " \
-              "awk '{print($3)}'"
+        cmd = "ps -eo cmd | " \
+              "grep __init__.py"
 
         output = subprocess.check_output(cmd, shell=True).decode().strip()
 
@@ -60,7 +59,5 @@ if __name__ == '__main__':
             logging.error("SakuraiBot stopped!")
             send_alert_mail()
             quit()
-        else:
-            logging.info("SakuraiBot running. Uptime: " + output)
 
         sleep(30)
