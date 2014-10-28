@@ -50,8 +50,7 @@ if __name__ == '__main__':
 
     logging.info("Statuscheck started.")
     while True:
-        cmd = "ps -eo cmd | " \
-              "grep __init__.py"
+        cmd = 'ps -eo cmd | grep "__[i]nit__.py"'
 
         output = subprocess.check_output(cmd, shell=True).decode().strip()
 
