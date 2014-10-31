@@ -24,7 +24,7 @@ git pull
 # Start
 echo "Starting"
 cd src
-nohup python3 __init__.py >../nohup.out 2>&1 &
+nohup python3 __init__.py --miiverse >../nohup.out 2>&1 &
 disown
 sleep 1
 export SAKURAIPID=`ps aux | grep '__init__.py' | grep -v grep | awk '{print($2)}'`
