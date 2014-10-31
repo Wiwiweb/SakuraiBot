@@ -282,7 +282,7 @@ class SakuraiBot:
                 self.logger.info("Extra post author: " + extra_author)
                 extra_text = \
                     extra_post.find('p', class_='reply-content-text') \
-                    .get_text().strip()
+                        .get_text().strip()
                 self.logger.info("Extra post text: " + extra_text)
                 extra_screenshot_container = \
                     extra_post.find('div', class_='screenshot-container')
@@ -555,7 +555,7 @@ class SakuraiBot:
 
             # allowed_text_length =
             # length of text - the number of chars we must remove
-            #                - the length of the text we add at the end
+            # - the length of the text we add at the end
             allowed_text_length = \
                 len(text) \
                 - (len(title) - REDDIT_TITLE_LIMIT) \
@@ -646,7 +646,7 @@ class SakuraiBot:
             if extra_post.author != previous_author:
                 bonus_posts += \
                     "**Extra {author} post in Miiverse's comments!**  \n" \
-                    .format(author=extra_post.author)
+                        .format(author=extra_post.author)
             bonus_posts += ">{text}".format(text=extra_text)
             if extra_post.picture:
                 bonus_posts += "\n\n[Extra picture]({})\n\n" \
@@ -763,8 +763,15 @@ class SakuraiBot:
         irc_client.join_(channel)
         self.logger.debug("Joined channel")
         irc_client.privmsg(channel, 'New Sakurai post! - ' + reddit_url)
-        irc_client.privmsg(channel, post_details.text)
-        self.logger.info("IRC Message posted")
+        message = '"' + post_details.text + '"'
+        if len(message) <= 512:
+            irc_client.privmsg(channel, message)
+            self.logger.info("IRC Message posted")
+        else:
+            message = '"' + post_details.text[:472] + ' [...]" (Text too long! See the link.)'
+            irc_client.privmsg(channel, message)
+            self.logger.info("Shorten IRC Message posted")
+
         irc_client.quit()
 
     def bot_cycle(self):
