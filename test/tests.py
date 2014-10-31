@@ -100,10 +100,11 @@ class BasicTests(unittest.TestCase):
 
     def test_get_new_char(self):
         new_char = self.sbot.get_new_char()
-        self.assertTrue(re.match(r'[a-z_-]+', new_char.char_id))
-        self.assertTrue(re.match(r'[a-zA-Z -]+', new_char.name))
-        self.assertTrue(new_char.description == 'New challenger' or
-                        new_char.description == 'Veteran fighter')
+        if new_char:
+            self.assertTrue(re.match(r'[a-z_-]+', new_char.char_id))
+            self.assertTrue(re.match(r'[a-zA-Z -]+', new_char.name))
+            self.assertTrue(new_char.description == 'New challenger' or
+                            new_char.description == 'Veteran fighter')
 
     def test_set_last_post(self):
         file_before = 'last-post-before.txt'

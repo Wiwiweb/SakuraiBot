@@ -252,24 +252,34 @@ class SakuraiBot:
         self.logger.debug("Text of type: " + str(type(text)))
         self.logger.info("Post text: " + text)
 
-        screenshot_container = soup.find('div', class_='screenshot-container')
-        if screenshot_container is None:
+        screenshot_containers = \
+            soup.find_all('div', class_='screenshot-container')
+        if not screenshot_containers:
             # Text post
             picture_url = None
             video_url = None
             self.logger.info("No picture or video found.")
-        elif 'video' in screenshot_container['class']:
-            # Video post
-            picture_url = None
-            embed_url = screenshot_container.find('iframe').get('src')
-            video_id = re.match(YOUTUBE_REGEX, embed_url).group(1)
-            video_url = 'https://www.youtube.com/watch?v=' + video_id
-            self.logger.info("Post video: " + video_url)
         else:
-            # Picture post
-            picture_url = screenshot_container.find('img').get('src')
-            video_url = None
-            self.logger.info("Post picture: " + picture_url)
+            image = None
+            for item in screenshot_containers:
+                image = item.find('img')
+                if image:
+                    break
+
+            if image:
+                # Picture post
+                picture_url = image.get('src')
+                video_url = None
+                self.logger.info("Post picture: " + picture_url)
+            else:
+                # Video post and nothing else
+                picture_url = None
+                # If there's multiple videos (not that it even happened)
+                # we'll take the first one
+                embed_url = screenshot_containers[0].find('iframe').get('src')
+                video_id = re.match(YOUTUBE_REGEX, embed_url).group(1)
+                video_url = 'https://www.youtube.com/watch?v=' + video_id
+                self.logger.info("Post video: " + video_url)
 
         # Check for extra image in comments
         extra_posts_soup = soup.find_all('li', class_='official-user')
@@ -282,7 +292,7 @@ class SakuraiBot:
                 self.logger.info("Extra post author: " + extra_author)
                 extra_text = \
                     extra_post.find('p', class_='reply-content-text') \
-                        .get_text().strip()
+                    .get_text().strip()
                 self.logger.info("Extra post text: " + extra_text)
                 extra_screenshot_container = \
                     extra_post.find('div', class_='screenshot-container')
@@ -649,7 +659,7 @@ class SakuraiBot:
             if extra_post.author != previous_author:
                 bonus_posts += \
                     "**Extra {author} post in Miiverse's comments!**  \n" \
-                        .format(author=extra_post.author)
+                    .format(author=extra_post.author)
             bonus_posts += ">{text}".format(text=extra_text)
             if extra_post.picture:
                 bonus_posts += "\n\n[Extra picture]({})\n\n" \
@@ -771,7 +781,8 @@ class SakuraiBot:
             irc_client.privmsg(channel, message)
             self.logger.info("IRC Message posted")
         else:
-            message = '"' + post_details.text[:472] + ' [...]" (Text too long! See the link.)'
+            message = '"' + post_details.text[:472] + \
+                      ' [...]" (Text too long! See the link.)'
             irc_client.privmsg(channel, message)
             self.logger.info("Shorten IRC Message posted")
 
