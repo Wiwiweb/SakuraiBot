@@ -578,7 +578,10 @@ class SakuraiBot:
                     "New submission posted! " + submission.short_link)
             except praw.errors.AlreadySubmitted:
                 self.logger.info("Submission already posted. Changing url.")
-                url = url.split('?')[0] + '?unique=' + str(uuid4())
+                if '?' in url:
+                    url = url + '&unique=' + str(uuid4())
+                else:
+                    url = url + '?unique=' + str(uuid4())
                 submission = r.submit(self.subreddit, title, url=url)
                 self.logger.info(
                     "New submission posted! " + submission.short_link)
