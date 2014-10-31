@@ -773,6 +773,8 @@ class SakuraiBot:
         irc_client = lurklib.Client(server=server, nick=nicks, tls=False)
         self.logger.debug("Logged in to the IRC server")
         self.logger.debug("irc_client = " + str(irc_client))
+        sleep(30)
+        self.logger.debug("Slept")
         irc_client.join_(channel)
         self.logger.debug("Joined channel")
         irc_client.privmsg(channel, 'New Sakurai post! - ' + reddit_url)
