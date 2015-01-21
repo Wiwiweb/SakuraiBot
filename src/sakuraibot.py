@@ -607,7 +607,8 @@ class SakuraiBot:
         full_text = ''
         if text_too_long:
             # Reddit formatting
-            reddit_text = post_details.text.replace("\r\n", "  \n")
+            reddit_text = post_details.text.replace("\r\n\r\n", "\n\n>")
+            reddit_text = reddit_text.replace("\r\n", "  \n")
             full_text = "Full text:  \n>" + reddit_text
             self.logger.info("Text too long. Added to comment.")
 
@@ -626,7 +627,6 @@ class SakuraiBot:
 
         album_link = ("[Pic of the Day album](http://imgur.com/a/"
                       + self.imgur_album + ")")
-        self.logger.info("filename: " + self.extra_comment_filename)
         f = open(self.extra_comment_filename, 'r+')
         extra_comment = f.read().strip()
         if len(extra_comment) > 0:
