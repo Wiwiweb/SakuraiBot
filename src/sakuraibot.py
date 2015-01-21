@@ -779,11 +779,11 @@ class SakuraiBot:
         self.logger.debug("Joined channel")
         irc_client.privmsg(channel, 'New Sakurai post! - ' + reddit_url)
         message = '"' + post_details.text + '"'
-        if len(message) <= 512:
+        if len(message) <= 500:
             irc_client.privmsg(channel, message)
             self.logger.info("IRC Message posted")
         else:
-            message = '"' + post_details.text[:472] + \
+            message = '"' + post_details.text[:460] + \
                       ' [...]" (Text too long! See the link.)'
             irc_client.privmsg(channel, message)
             self.logger.info("Shorten IRC Message posted")
