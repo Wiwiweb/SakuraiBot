@@ -655,7 +655,8 @@ class SakuraiBot:
         bonus_posts = ''
         previous_author = ''
         for extra_post in post_details.extra_posts:
-            extra_text = extra_post.text.replace("\r\n", "  \n")
+            extra_text = extra_post.text.replace("\r\n\r\n", "\n\n>")
+            extra_text = extra_text.replace("\r\n", "  \n")
             if extra_post.author != previous_author:
                 bonus_posts += \
                     "**Extra {author} post in Miiverse's comments!**  \n" \
